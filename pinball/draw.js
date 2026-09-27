@@ -6,7 +6,19 @@
 function drawGame() {
   drawTable();
   drawWalls();
+  drawFlippers();
   drawBall();
+}
+
+// Each flipper as a thick line with round ends, from pivot to tip.
+function drawFlippers() {
+  stroke(255, 43, 214);
+  strokeWeight(FLIPPER_THICKNESS);
+  strokeCap(ROUND);
+  for (const flipper of flippers) {
+    const tip = flipperTip(flipper);
+    line(flipper.layout.x, flipper.layout.y, tip.x, tip.y);
+  }
 }
 
 // The table surface.

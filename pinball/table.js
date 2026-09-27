@@ -4,9 +4,13 @@
 
 const GRAVITY = 0.2;     // How steep the table is. Speed added toward you every frame.
 const BALL_RADIUS = 12;    // How big the ball is.
-const WALL_BOUNCE = 0.5;  // How bouncy walls are. 0 = thud, no bounce. 1 = super bouncy.
+const WALL_BOUNCE = 0.4;  // How bouncy walls are. 0 = thud, no bounce. 1 = super bouncy.
 const MAX_SPEED = 20;     // Speed cap, so the ball never goes wild.
 const SUBSTEPS = 8;       // Tiny moves per frame. More = the ball can't glitch through walls.
+const FLIPPER_POWER = 18;     // How hard flippers hit: how fast the flipper tip moves.
+const FLIPPER_LENGTH = 60;    // How long each flipper is.
+const FLIPPER_THICKNESS = 12; // How fat each flipper is.
+const FLIPPER_BOUNCE = 0.3;   // How bouncy flippers are. Low = the ball can rest on a raised flipper.
 const VIEW = "FLAT";      // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
 
 // ============================================================
@@ -36,4 +40,16 @@ const WALLS = [
   // Floor of the top level. It slopes down to the right, toward where the tube
   // will go. Until we build the tube (step 9), the ball drops through the gap.
   { x1: 0,   y1: 300, x2: 320, y2: 340 },
+
+  // Guide walls: slope down from the sides into each flipper's pivot.
+  { x1: 0,   y1: 530, x2: 105, y2: 610 },  // left guide
+  { x1: 360, y1: 530, x2: 255, y2: 610 },  // right guide
 ];
+
+// Flippers. (x, y) is the pivot, the pin the flipper turns around.
+// Angles are in radians: 0 points right, and bigger numbers turn clockwise.
+// The gap between the two tips at rest is about 45, almost 2 balls wide.
+const FLIPPERS = {
+  left:  { x: 105, y: 610, restAngle: 0.5,           upAngle: -0.5 },
+  right: { x: 255, y: 610, restAngle: Math.PI - 0.5, upAngle: Math.PI + 0.5 },
+};
