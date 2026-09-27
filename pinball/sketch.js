@@ -6,7 +6,10 @@
 // Which keys are held down right now. We use the key's "code" because
 // it tells Left Shift ("ShiftLeft") apart from Right Shift ("ShiftRight").
 const keysDown = {};
-window.addEventListener("keydown", (event) => { keysDown[event.code] = true; });
+window.addEventListener("keydown", (event) => {
+  keysDown[event.code] = true;
+  if (event.code === "Space") event.preventDefault();  // stop Space from scrolling the page
+});
 window.addEventListener("keyup", (event) => { keysDown[event.code] = false; });
 // If the window loses focus, let go of every key so nothing gets stuck.
 window.addEventListener("blur", () => {
@@ -14,7 +17,7 @@ window.addEventListener("blur", () => {
 });
 
 function setup() {
-  createCanvas(TABLE.width, TABLE.height);
+  createCanvas(TABLE.width, TABLE.height + HUD_HEIGHT);
   resetBall();
 }
 
@@ -22,6 +25,7 @@ function setup() {
 function readInput() {
   leftFlipper.pressed = keysDown["ShiftLeft"] || keysDown["KeyZ"];
   rightFlipper.pressed = keysDown["ShiftRight"] || keysDown["Slash"];
+  plunger.held = keysDown["Space"];
 }
 
 function draw() {

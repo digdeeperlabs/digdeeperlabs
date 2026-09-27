@@ -15,18 +15,99 @@ const leftFlipper = makeFlipper(FLIPPERS.left);
 const rightFlipper = makeFlipper(FLIPPERS.right);
 const flippers = [leftFlipper, rightFlipper];
 
-// Put the ball back at the start, not moving.
+// The plunger's backpack: is Space held, and how far is it pulled (0 to 1)?
+const plunger = { held: false, pull: 0 };
+
+// What the ball is doing right now:
+//   "READY"    = sitting on the plunger, waiting for a launch
+//   "LAUNCHED" = flying up the plunger lane
+//   "IN_PLAY"  = out on the table
+let ballMode = "READY";
+let weakLaunches = 0;  // weak launches in a row on this ball
+
+// Put the ball on top of the plunger, not moving, ready to launch.
 function resetBall() {
-  ball.x = BALL_START.x;
-  ball.y = BALL_START.y;
+  ball.x = (PLUNGER.x1 + PLUNGER.x2) / 2;
+  ball.y = PLUNGER.restY - BALL_RADIUS;
   ball.vx = 0;
   ball.vy = 0;
+  plunger.pull = 0;
+  ballMode = "READY";
+}
+
+// The ball is gone. (Step 5 will count balls and add Game Over.)
+function loseBall() {
+  weakLaunches = 0;
+  resetBall();
+}
+
+// The top of the plunger moves down as you pull it back.
+function plungerTopY() {
+  return PLUNGER.restY + plunger.pull * PLUNGER.pullDistance;
+}
+
+// How fast a launch has to be for the ball to climb up to the corner and
+// get turned onto the table. Climbing a distance d against gravity g
+// takes a speed of about sqrt(2 x g x d).
+function speedNeededToLaunch() {
+  const laneX = (PLUNGER.x1 + PLUNGER.x2) / 2;
+  const c = LAUNCH_CORNER;
+  const slope = (c.y2 - c.y1) / (c.x2 - c.x1);
+  const cornerY = c.y1 + (laneX - c.x1) * slope;  // the corner wall, straight above the ball
+  // A slanted wall touches the ball a bit lower than straight above its center.
+  const touchY = cornerY + BALL_RADIUS * Math.sqrt(1 + slope * slope);
+  const climb = (PLUNGER.restY - BALL_RADIUS) - touchY;
+  return Math.sqrt(2 * GRAVITY * climb);
+}
+
+// Hold Space to pull. Let go to launch.
+function updatePlunger() {
+  if (ballMode !== "READY") return;
+  if (plunger.held) {
+    plunger.pull = Math.min(1, plunger.pull + 1 / PLUNGER_PULL_TIME);
+  } else if (plunger.pull >= PLUNGER_MIN_PULL) {
+    launch();
+  } else {
+    plunger.pull = 0;  // just a tap: snap back, no launch
+  }
+}
+
+// The plunger snaps back up and flings the ball. More pull = more speed.
+function launch() {
+  ball.vy = -plunger.pull * PLUNGER_MAX;
+  plunger.pull = 0;
+  ball.y = plungerTopY() - BALL_RADIUS;  // the snap carries the ball up with it
+  ballMode = "LAUNCHED";
+}
+
+// After the ball moves: did it make it out, or fall back onto the plunger?
+function checkLaunch() {
+  const inLane = ball.x - BALL_RADIUS > PLUNGER.x1 - 1;
+  const onPlunger = inLane && ball.vy >= 0 && ball.y >= plungerTopY() - BALL_RADIUS - 1;
+
+  if (ballMode === "LAUNCHED") {
+    if (!inLane) {
+      ballMode = "IN_PLAY";  // made it out onto the table
+      weakLaunches = 0;
+    } else if (onPlunger) {
+      weakLaunches += 1;     // too weak, fell back down
+      if (weakLaunches >= WEAK_LAUNCHES_ALLOWED) {
+        loseBall();
+      } else {
+        ballMode = "READY";
+      }
+    }
+  } else if (ballMode === "IN_PLAY" && onPlunger) {
+    ballMode = "READY";      // rolled back into the lane from the top: launch again
+  }
 }
 
 // One frame of physics, split into SUBSTEPS tiny moves.
 // Checking walls after every tiny move stops a fast ball from
 // jumping right over a thin wall (called "tunneling").
 function updatePhysics() {
+  updatePlunger();
+
   for (let step = 0; step < SUBSTEPS; step++) {
     for (const flipper of flippers) {
       turnFlipper(flipper);
@@ -45,13 +126,16 @@ function updatePhysics() {
     for (const flipper of flippers) {
       bounceOffFlipper(flipper);
     }
+    // The top of the plunger is a floor for the plunger lane. No bounce.
+    bounceOffLine(PLUNGER.x1, plungerTopY(), PLUNGER.x2, plungerTopY(), BALL_RADIUS, 0, null);
   }
 
   capSpeed();
+  checkLaunch();
 
-  // The bottom is open for now, so if the ball falls out, bring it back.
+  // If the ball falls out the bottom, it's gone.
   if (ball.y - BALL_RADIUS > TABLE.height) {
-    resetBall();
+    loseBall();
   }
 }
 

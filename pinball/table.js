@@ -11,6 +11,10 @@ const FLIPPER_POWER = 18;     // How hard flippers hit: how fast the flipper tip
 const FLIPPER_LENGTH = 60;    // How long each flipper is.
 const FLIPPER_THICKNESS = 12; // How fat each flipper is.
 const FLIPPER_BOUNCE = 0.3;   // How bouncy flippers are. Low = the ball can rest on a raised flipper.
+const PLUNGER_MAX = 20;         // Strongest launch: the ball's speed at a full pull.
+const PLUNGER_PULL_TIME = 60;   // Frames to pull all the way back. 60 frames = 1 second.
+const PLUNGER_MIN_PULL = 0.1;   // Pulls smaller than this don't launch, so a quick tap doesn't count.
+const WEAK_LAUNCHES_ALLOWED = 3; // Weak launches in a row before you lose the ball.
 const VIEW = "FLAT";      // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
 
 // ============================================================
@@ -23,15 +27,29 @@ const TABLE = {
   height: 700,
 };
 
-const BALL_START = { x: 200, y: 60 };  // Where a new ball appears.
+const HUD_HEIGHT = 50;  // The info strip under the table (power bar, messages).
+
+// The plunger fills the bottom of the plunger lane, from x1 to x2.
+// A new ball starts sitting on top of it.
+const PLUNGER = {
+  x1: 360,
+  x2: 400,
+  restY: 670,         // Top of the plunger when you're not pulling.
+  pullDistance: 25,   // How far down it goes at a full pull.
+};
 
 // Every wall is a straight line from (x1, y1) to (x2, y2).
+
+// The top-right corner turns a launched ball left, onto the table.
+// It has a name because the plunger math needs to know where it is.
+const LAUNCH_CORNER = { x1: 300, y1: 0, x2: 400, y2: 100 };
+
 const WALLS = [
   // Outside of the table
   { x1: 0,   y1: 100, x2: 0,   y2: 700 },  // left side
   { x1: 0,   y1: 100, x2: 100, y2: 0   },  // top-left corner
   { x1: 100, y1: 0,   x2: 300, y2: 0   },  // top
-  { x1: 300, y1: 0,   x2: 400, y2: 100 },  // top-right corner: turns a launched ball left
+  LAUNCH_CORNER,                           // top-right corner
   { x1: 400, y1: 100, x2: 400, y2: 700 },  // right side
 
   // Plunger lane: the ball launches up between this wall and the right side.
