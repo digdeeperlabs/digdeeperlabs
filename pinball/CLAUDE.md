@@ -1,10 +1,9 @@
 # Pinball: Game Brief
 
-## The mission
+## Mission
 
 A pinball game for a group of Emmet's friends. They are going on a pinball-themed scavenger hunt together. Winning this game reveals **Clue #1**, and each friend has to solve it before the hunt. So this game is both an invitation and a puzzle.
 
-- **Players:** 4 to 5 kids, about 11, playing on school laptops (Macs) with a keyboard.
 - **Deadline:** live, tested and ready to share by **September 30**.
 - **The most important rule:** every friend must be able to win. Aim for someone new to the game reaching the clue in about 5 to 10 minutes. Fun first, hard second.
 
@@ -14,18 +13,19 @@ Emmet writes Clue #1 himself. Do not write it, suggest wording, or guess the ans
 
 Also talk with him about this: anything in the game's code can be read by anyone who opens the page source, so the clue is visible to a curious player. Let him choose what to do about it. Options include lightly scrambling it, or making "find it in the code" a secret bonus route. It is a real security design choice. Treat it that way.
 
-## Controls
+## Players and controls
 
+- **Players:** 4 to 5 kids, about 11, playing on school laptops (Macs) with a keyboard.
 - **Left Shift:** left flipper. **Right Shift:** right flipper.
 - **Space:** hold to pull the plunger back, release to launch.
 - Backup keys: **Z** and **/** for the flippers, in case Shift misbehaves on some keyboard.
 - Show the controls on screen before the first launch.
 
-## How it gets built: the middle path
+## Tool and why: the middle path
 
-**Stage 1 (Session 1): 2D physics, flat view.** A working game drawn from above in p5.js: ball, gravity, walls, two flippers, a plunger, bumpers and three targets. It can look plain. It has to feel right.
+**Stage 1 (Session 1): 2D physics, flat view, in p5.js.** A working game drawn from above: ball, gravity, walls, two flippers, a plunger, bumpers and three targets.
 
-**Stage 2: 3D look with Three.js.** The same physics, drawn as a lit, tilted 3D pinball table: a shiny ball, glowing bumpers, a camera looking down the table like a real machine. The physics does not change. Only the drawing does.
+**Stage 2: 3D look with Three.js.** The same physics, drawn in 3D (see Look and feel). The physics does not change. Only the drawing does.
 
 **Keep both working.** Use a single setting such as `RENDERER = "2D"` or `"3D"` at the top of the code, so the 2D version is always a safe fallback. If 3D fights back, the party is never at risk.
 
@@ -40,15 +40,20 @@ Why it is built this way (teach this): the game's brain (physics and rules) is s
 - **Speed cap** on the ball so it never goes wild.
 - Make it forgiving: a few balls per game, and consider a short ball save at the start.
 
-## Win condition and balance (decide in plan mode)
+## Win/lose and balance
 
-Starting idea: light all three targets to reveal the clue. Balance questions to ask Emmet:
+Decide in plan mode. Starting idea: light all three targets to reveal the clue. Balance questions to ask Emmet:
 
 - Do lit targets stay lit when you lose a ball?
 - How many balls per game?
 - Should it get easier for a player who keeps losing, so nobody gets stuck?
 
 Test by having someone who has never played try it.
+
+## Look and feel
+
+- **Stage 1:** a flat view from above. It can look plain. It has to feel right.
+- **Stage 2:** a lit, tilted 3D pinball table: a shiny ball, glowing bumpers, a camera looking down the table like a real machine.
 
 ## Theme and flavor
 
@@ -74,3 +79,7 @@ Keep all art and names original.
 - Libraries load from the local `lib/` folder.
 - It is linked from the home page.
 - No personal details anywhere in the code or commits.
+
+## Status and next steps
+
+Not started yet. Next: Session 1, Stage 1 (2D physics, flat view).
