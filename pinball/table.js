@@ -15,6 +15,17 @@ const PLUNGER_MAX = 20;         // Strongest launch: the ball's speed at a full 
 const PLUNGER_PULL_TIME = 60;   // Frames to pull all the way back. 60 frames = 1 second.
 const PLUNGER_MIN_PULL = 0.1;   // Pulls smaller than this don't launch, so a quick tap doesn't count.
 const WEAK_LAUNCHES_ALLOWED = 3; // Weak launches in a row before you lose the ball.
+const BALLS_PER_GAME = 3;       // How many balls you start with.
+const BALL_SAVE_SECONDS = 3;    // A new ball that drains this fast comes back free (once per ball).
+const MESSAGE_SECONDS = 2;      // How long pop-up messages stay on screen.
+const BUMPER_RADIUS = 18;       // How big the bumpers are.
+const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.
+const TARGET_SPEED = 1;         // How fast the moving target slides (pixels per frame).
+const TARGET_POINTS = 200;      // Points for hitting the moving target.
+const UP_SHOT_POINTS = 350;     // Points for shooting the ball back up to the top level.
+const MIN_HIT_SPEED = 1;       // A hit slower than this doesn't score, so a resting ball can't farm points.
+const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hit. The target can't score again until it stops.
+const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
 const VIEW = "FLAT";      // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
 
 // ============================================================
@@ -44,6 +55,11 @@ const PLUNGER = {
 // It has a name because the plunger math needs to know where it is.
 const LAUNCH_CORNER = { x1: 300, y1: 0, x2: 400, y2: 100 };
 
+// The gap in the top level's floor, where the ball drops to the bottom level.
+// A chute (two short walls) runs down from it, so the ball falls straight
+// instead of flying sideways. (Step 9 swaps this for the tube.)
+const TOP_GAP = { left: 250, right: 290, top: 340, bottom: 420 };
+
 const WALLS = [
   // Outside of the table
   { x1: 0,   y1: 100, x2: 0,   y2: 700 },  // left side
@@ -55,14 +71,38 @@ const WALLS = [
   // Plunger lane: the ball launches up between this wall and the right side.
   { x1: 360, y1: 130, x2: 360, y2: 700 },
 
-  // Floor of the top level. It slopes down to the right, toward where the tube
-  // will go. Until we build the tube (step 9), the ball drops through the gap.
-  { x1: 0,   y1: 300, x2: 320, y2: 340 },
+  // Floor of the top level: two walls that slope down into the gap.
+  { x1: 0,   y1: 300, x2: TOP_GAP.left,  y2: TOP_GAP.top },  // left part
+  { x1: 360, y1: 310, x2: TOP_GAP.right, y2: TOP_GAP.top },  // right part
 
-  // Guide walls: slope down from the sides into each flipper's pivot.
-  { x1: 0,   y1: 530, x2: 105, y2: 610 },  // left guide
-  { x1: 360, y1: 530, x2: 255, y2: 610 },  // right guide
+  // The chute under the gap.
+  { x1: TOP_GAP.left,  y1: TOP_GAP.top, x2: TOP_GAP.left,  y2: TOP_GAP.bottom },
+  { x1: TOP_GAP.right, y1: TOP_GAP.top, x2: TOP_GAP.right, y2: TOP_GAP.bottom },
+
+  // Outer lanes: a skinny lane down each side. Fall in and the ball is gone.
+  { x1: 32,  y1: 470, x2: 32,  y2: 700 },  // left outer lane wall
+  { x1: 328, y1: 470, x2: 328, y2: 700 },  // right outer lane wall
+
+  // Guide walls: slope down from the outer lane walls into each flipper's pivot.
+  { x1: 32,  y1: 540, x2: 105, y2: 610 },  // left guide
+  { x1: 328, y1: 540, x2: 255, y2: 610 },  // right guide
 ];
+
+// Bumpers: round, just above the flippers. (x, y) is the center.
+const BUMPERS = [
+  { x: 130, y: 490 },  // left
+  { x: 230, y: 490 },  // right
+];
+
+// The moving target: a short bar that slides left and right.
+// It stays to the left of the chute so they never overlap.
+const TARGET = {
+  y: 390,
+  centerX: 150,   // middle of its slide
+  range: 60,      // how far it slides each way from the middle
+  width: 50,
+  thickness: 10,
+};
 
 // Flippers. (x, y) is the pivot, the pin the flipper turns around.
 // Angles are in radians: 0 points right, and bigger numbers turn clockwise.

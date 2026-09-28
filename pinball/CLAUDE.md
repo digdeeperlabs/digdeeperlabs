@@ -82,4 +82,39 @@ Keep all art and names original.
 
 ## Status and next steps
 
-Not started yet. Next: Session 1, Stage 1 (2D physics, flat view).
+### Design decisions from Session 1 (these replace older ideas above)
+
+- **Table layout:** two levels. A solid wall splits them. The ball goes between levels only through the right tube (two-way). No inner lane on the left.
+- **Top level:** 4 spinners (a hub with 4 arms, like a plus sign). The player presses **Up Arrow** and all 4 spin half a turn, then half a turn back. Consider a cooldown so they can't be spammed.
+- **Bottom level:** 1 moving target (not 3 targets), 2 bumpers just above the flippers, 2 flippers, an outer lane on each side (drain), and 2 straight dead-end tubes that light up, score, and roll the ball back out.
+- **Plunger:** a weak launch falls back. 3 weak launches in a row = lose the ball. Power bar turns green when the pull is strong enough (same math as physics).
+- **Scoring:** 10 points per second alive, 200 per target hit, 350 per up shot (going up to the top level). Up shots give points only, no extra ball.
+- **View:** Emmet wants a diagonal view. Physics stays flat. Only draw.js tilts the picture, with a `VIEW = "FLAT"` / `"ANGLED"` setting.
+- **Win condition:** the old idea ("light 3 targets") no longer fits. Decide in Session 2.
+
+### What works (steps 1 to 5 of the Stage 1 plan, tested)
+
+- Ball, gravity, walls, substeps (no tunneling), speed cap.
+- 2 flippers on Left/Right Shift, backup keys Z and /. Emmet wrote the right flipper line himself.
+- Plunger with power bar, weak launch rule, on-screen controls.
+- Outer lanes, 3 balls, ball save (3 seconds, once per ball), Game Over, Enter to restart.
+- Game shrinks to fit any screen size.
+- Temporary chute under the top-level gap, so the ball drops straight onto the right side instead of flying into the right outer lane.
+
+### Built but NOT tested yet (step 6)
+
+- 2 bumpers with a kick, the moving target (200 points, can't farm points by resting on it), score on screen and on Game Over, up shot (+350).
+
+### Known issues
+
+- Getting back up through the chute is very hard (only a precise left-flipper shot). The two-way right tube in step 9 replaces the chute.
+
+### Next time
+
+1. Test step 6. Emmet owes two predictions: a bumper hit at speed 5 leaves at what speed? At speed 18? (Answer: bounces back at 5, plus a kick of 6 = 11. At 18: 18 + 6 = 24, capped to MAX_SPEED 20.)
+2. Ask Emmet: does "no extra balls" also apply to the dead-end tubes?
+3. Step 7: spinners on Up Arrow.
+4. Step 8: diagonal camera.
+5. Step 9: the two-way right tube (move the up shot reward to it) and the dead-end tubes.
+6. Add the game to the home page.
+7. Session 2 goals from the plan above: win condition and the clue.

@@ -15,6 +15,13 @@ const leftFlipper = makeFlipper(FLIPPERS.left);
 const rightFlipper = makeFlipper(FLIPPERS.right);
 const flippers = [leftFlipper, rightFlipper];
 
+// Each bumper's backpack: its layout, and a flash timer for when it's hit.
+const bumpers = BUMPERS.map((layout) => ({ layout: layout, flashFrames: 0 }));
+
+// The moving target's backpack: where it is, which way it's sliding
+// (1 = right, -1 = left), and a flash timer. It can't score while flashing.
+const target = { x: TARGET.centerX, direction: 1, flashFrames: 0 };
+
 // The plunger's backpack: is Space held, and how far is it pulled (0 to 1)?
 const plunger = { held: false, pull: 0 };
 
@@ -24,6 +31,34 @@ const plunger = { held: false, pull: 0 };
 //   "IN_PLAY"  = out on the table
 let ballMode = "READY";
 let weakLaunches = 0;  // weak launches in a row on this ball
+
+// The game's backpack: balls, Game Over, ball save, and pop-up messages.
+// Timers count frames. 60 frames = 1 second.
+const game = {
+  score: 0,
+  ballsLeft: BALLS_PER_GAME,
+  over: false,
+  restartHeld: false,   // is Enter pressed?
+  saveReady: true,      // can this ball still be saved?
+  saveFramesLeft: 0,    // ball save is on while this is above 0
+  message: "",
+  messageFramesLeft: 0,
+};
+
+function startNewGame() {
+  game.score = 0;
+  game.ballsLeft = BALLS_PER_GAME;
+  game.over = false;
+  newBall();
+}
+
+// A fresh ball: new weak-launch count, and it gets a ball save.
+function newBall() {
+  weakLaunches = 0;
+  game.saveReady = true;
+  game.saveFramesLeft = 0;
+  resetBall();
+}
 
 // Put the ball on top of the plunger, not moving, ready to launch.
 function resetBall() {
@@ -35,10 +70,68 @@ function resetBall() {
   ballMode = "READY";
 }
 
-// The ball is gone. (Step 5 will count balls and add Game Over.)
-function loseBall() {
-  weakLaunches = 0;
-  resetBall();
+function showMessage(text) {
+  game.message = text;
+  game.messageFramesLeft = MESSAGE_SECONDS * 60;
+}
+
+// The ball fell out the bottom. Saved, or lost?
+function drain() {
+  if (game.saveFramesLeft > 0) {
+    game.saveFramesLeft = 0;
+    weakLaunches = 0;
+    showMessage("Ball saved!");
+    resetBall();  // same ball again, but no second save
+  } else {
+    loseBall("Ball lost!");
+  }
+}
+
+// Take away a ball. Out of balls = Game Over.
+function loseBall(reason) {
+  game.ballsLeft -= 1;
+  if (game.ballsLeft <= 0) {
+    game.over = true;
+  } else {
+    showMessage(reason);
+    newBall();
+  }
+}
+
+// Count down the timers by one frame.
+function updateTimers() {
+  if (game.saveFramesLeft > 0) game.saveFramesLeft -= 1;
+  if (game.messageFramesLeft > 0) game.messageFramesLeft -= 1;
+  if (target.flashFrames > 0) target.flashFrames -= 1;
+  for (const bumper of bumpers) {
+    if (bumper.flashFrames > 0) bumper.flashFrames -= 1;
+  }
+}
+
+// Slide the target. When it reaches the end of its range, turn around.
+function moveTarget() {
+  target.x += target.direction * TARGET_SPEED;
+  if (Math.abs(target.x - TARGET.centerX) >= TARGET.range) {
+    target.x = TARGET.centerX + Math.sign(target.x - TARGET.centerX) * TARGET.range;
+    target.direction *= -1;
+  }
+}
+
+// Up shot: did the ball just go UP through the top of the chute this frame?
+// (It was below the gap's top line last frame, and it's above it now.)
+function checkUpShot(yBefore) {
+  const insideChute = ball.x > TOP_GAP.left && ball.x < TOP_GAP.right;
+  if (insideChute && yBefore > TOP_GAP.top && ball.y <= TOP_GAP.top) {
+    game.score += UP_SHOT_POINTS;
+    showMessage("Up shot! +" + UP_SHOT_POINTS);
+  }
+}
+
+// Points for staying alive: a little bit every frame the ball is in play.
+function scoreTime() {
+  if (ballMode === "IN_PLAY") {
+    game.score += POINTS_PER_SECOND / 60;
+  }
 }
 
 // The top of the plunger moves down as you pull it back.
@@ -89,10 +182,14 @@ function checkLaunch() {
     if (!inLane) {
       ballMode = "IN_PLAY";  // made it out onto the table
       weakLaunches = 0;
+      if (game.saveReady) {  // start this ball's ball save
+        game.saveReady = false;
+        game.saveFramesLeft = BALL_SAVE_SECONDS * 60;
+      }
     } else if (onPlunger) {
       weakLaunches += 1;     // too weak, fell back down
       if (weakLaunches >= WEAK_LAUNCHES_ALLOWED) {
-        loseBall();
+        loseBall(WEAK_LAUNCHES_ALLOWED + " weak launches: ball lost!");
       } else {
         ballMode = "READY";
       }
@@ -106,8 +203,18 @@ function checkLaunch() {
 // Checking walls after every tiny move stops a fast ball from
 // jumping right over a thin wall (called "tunneling").
 function updatePhysics() {
+  // Game Over: nothing moves until the player presses Enter.
+  if (game.over) {
+    if (game.restartHeld) startNewGame();
+    return;
+  }
+
+  updateTimers();
+  moveTarget();
+  scoreTime();
   updatePlunger();
 
+  const yBefore = ball.y;
   for (let step = 0; step < SUBSTEPS; step++) {
     for (const flipper of flippers) {
       turnFlipper(flipper);
@@ -126,16 +233,21 @@ function updatePhysics() {
     for (const flipper of flippers) {
       bounceOffFlipper(flipper);
     }
+    for (const bumper of bumpers) {
+      bounceOffBumper(bumper);
+    }
+    bounceOffTarget();
     // The top of the plunger is a floor for the plunger lane. No bounce.
     bounceOffLine(PLUNGER.x1, plungerTopY(), PLUNGER.x2, plungerTopY(), BALL_RADIUS, 0, null);
   }
 
   capSpeed();
   checkLaunch();
+  checkUpShot(yBefore);
 
-  // If the ball falls out the bottom, it's gone.
+  // If the ball falls out the bottom, it drained.
   if (ball.y - BALL_RADIUS > TABLE.height) {
-    loseBall();
+    drain();
   }
 }
 
@@ -157,6 +269,39 @@ function flipperTip(flipper) {
   };
 }
 
+// Bumpers: a perfect bounce, plus an extra kick straight out from the center.
+// So the ball always leaves faster than it arrived.
+function bounceOffBumper(bumper) {
+  const awayX = ball.x - bumper.layout.x;
+  const awayY = ball.y - bumper.layout.y;
+  const distance = Math.sqrt(awayX * awayX + awayY * awayY);
+  const reach = BALL_RADIUS + BUMPER_RADIUS;
+  if (distance >= reach || distance === 0) return;  // not touching
+
+  const normalX = awayX / distance;
+  const normalY = awayY / distance;
+  ball.x = bumper.layout.x + normalX * reach;
+  ball.y = bumper.layout.y + normalY * reach;
+
+  const speedInto = ball.vx * normalX + ball.vy * normalY;
+  if (speedInto < 0) {
+    ball.vx += (-2 * speedInto + BUMPER_KICK) * normalX;
+    ball.vy += (-2 * speedInto + BUMPER_KICK) * normalY;
+    bumper.flashFrames = HIT_FLASH_FRAMES;
+  }
+}
+
+// The target bounces like a wall. A hit scores, unless it's still flashing.
+function bounceOffTarget() {
+  const half = TARGET.width / 2;
+  const hitSpeed = bounceOffLine(target.x - half, TARGET.y, target.x + half, TARGET.y,
+                                 BALL_RADIUS + TARGET.thickness / 2, WALL_BOUNCE, null);
+  if (hitSpeed >= MIN_HIT_SPEED && target.flashFrames === 0) {
+    game.score += TARGET_POINTS;
+    target.flashFrames = HIT_FLASH_FRAMES;
+  }
+}
+
 function bounceOffWall(wall) {
   bounceOffLine(wall.x1, wall.y1, wall.x2, wall.y2, BALL_RADIUS, WALL_BOUNCE, null);
 }
@@ -170,6 +315,7 @@ function bounceOffFlipper(flipper) {
 // If the ball is touching the line from (x1, y1) to (x2, y2), push it out
 // and bounce it. "reach" is how close counts as touching. If the line is a
 // flipper, its turning speed gets added into the bounce.
+// Gives back how hard the ball hit (0 = no hit).
 function bounceOffLine(x1, y1, x2, y2, reach, bounciness, flipper) {
   // Find the point on the line closest to the ball.
   const lineX = x2 - x1;
@@ -184,7 +330,7 @@ function bounceOffLine(x1, y1, x2, y2, reach, bounciness, flipper) {
   const awayX = ball.x - closestX;
   const awayY = ball.y - closestY;
   const distance = Math.sqrt(awayX * awayX + awayY * awayY);
-  if (distance >= reach || distance === 0) return;  // not touching
+  if (distance >= reach || distance === 0) return 0;  // not touching
 
   // The "normal": a length-1 arrow pointing from the line to the ball.
   const normalX = awayX / distance;
@@ -209,7 +355,9 @@ function bounceOffLine(x1, y1, x2, y2, reach, bounciness, flipper) {
   if (speedInto < 0) {
     ball.vx -= (1 + bounciness) * speedInto * normalX;
     ball.vy -= (1 + bounciness) * speedInto * normalY;
+    return -speedInto;
   }
+  return 0;
 }
 
 // Speed cap: if the ball is faster than MAX_SPEED, slow it to MAX_SPEED.

@@ -18,7 +18,7 @@ window.addEventListener("blur", () => {
 
 function setup() {
   createCanvas(TABLE.width, TABLE.height + HUD_HEIGHT);
-  resetBall();
+  startNewGame();
 }
 
 // Input: tell the brain which buttons are pressed.
@@ -26,6 +26,7 @@ function readInput() {
   leftFlipper.pressed = keysDown["ShiftLeft"] || keysDown["KeyZ"];
   rightFlipper.pressed = keysDown["ShiftRight"] || keysDown["Slash"];
   plunger.held = keysDown["Space"];
+  game.restartHeld = keysDown["Enter"];
 }
 
 function draw() {
