@@ -3,6 +3,49 @@
 // it never changes it.
 // ============================================================
 
+// ---------- The camera ----------
+
+// How far from your eyes a spot on the table is: 1 at the near end (bottom),
+// bigger toward the far end (top). FLAT view: everything is the same distance.
+function depthAt(y) {
+  if (VIEW === "FLAT") return 1;
+  return 1 + CAMERA_DEPTH * (1 - y / TABLE.height);
+}
+
+// Where a spot on the flat table shows up on the screen.
+// Farther away = divide by a bigger number = smaller and closer to the middle.
+function toScreen(x, y) {
+  if (VIEW === "FLAT") return { x: x, y: y };
+  const depth = depthAt(y);
+  return {
+    x: TABLE.width / 2 + (x - TABLE.width / 2) / depth,
+    y: TABLE.height - (TABLE.height - y) * CAMERA_TILT / depth,
+  };
+}
+
+// Drawing tools that go through the camera. Use these for anything ON the table.
+function tableLine(x1, y1, x2, y2) {
+  const a = toScreen(x1, y1);
+  const b = toScreen(x2, y2);
+  line(a.x, a.y, b.x, b.y);
+}
+
+function tableCircle(x, y, diameter) {
+  const p = toScreen(x, y);
+  circle(p.x, p.y, diameter / depthAt(y));
+}
+
+// A rectangle on the table. In the angled view it becomes a 4-sided shape.
+function tableRect(x, y, width, height) {
+  const a = toScreen(x, y);
+  const b = toScreen(x + width, y);
+  const c = toScreen(x + width, y + height);
+  const d = toScreen(x, y + height);
+  quad(a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y);
+}
+
+// ---------- Drawing the game ----------
+
 function drawGame() {
   drawTable();
   drawWalls();
@@ -60,7 +103,7 @@ function drawBumpers() {
   for (const bumper of bumpers) {
     if (bumper.flashFrames > 0) fill(255);
     else fill(120, 40, 160);
-    circle(bumper.layout.x, bumper.layout.y, BUMPER_RADIUS * 2);
+    tableCircle(bumper.layout.x, bumper.layout.y, BUMPER_RADIUS * 2);
   }
 }
 
@@ -76,13 +119,13 @@ function drawSpinners() {
     strokeWeight(SPINNER_THICKNESS);
     for (let arm = 0; arm < 4; arm++) {
       const armAngle = spinner.angle + arm * (Math.PI / 2);
-      line(spinner.layout.x, spinner.layout.y,
-           spinner.layout.x + Math.cos(armAngle) * SPINNER_ARM,
-           spinner.layout.y + Math.sin(armAngle) * SPINNER_ARM);
+      tableLine(spinner.layout.x, spinner.layout.y,
+                spinner.layout.x + Math.cos(armAngle) * SPINNER_ARM,
+                spinner.layout.y + Math.sin(armAngle) * SPINNER_ARM);
     }
     noStroke();
     fill(255);
-    circle(spinner.layout.x, spinner.layout.y, 10);  // the hub
+    tableCircle(spinner.layout.x, spinner.layout.y, 10);  // the hub
   }
 }
 
@@ -93,7 +136,7 @@ function drawTarget() {
   strokeWeight(TARGET.thickness);
   strokeCap(SQUARE);
   const half = TARGET.width / 2;
-  line(target.x - half, TARGET.y, target.x + half, TARGET.y);
+  tableLine(target.x - half, TARGET.y, target.x + half, TARGET.y);
 }
 
 // Score at the top of the table.
@@ -143,7 +186,7 @@ function drawPlunger() {
   noStroke();
   fill(255, 180, 0);
   const top = plungerTopY();
-  rect(PLUNGER.x1 + 4, top, PLUNGER.x2 - PLUNGER.x1 - 8, TABLE.height - top);
+  tableRect(PLUNGER.x1 + 4, top, PLUNGER.x2 - PLUNGER.x1 - 8, TABLE.height - top);
 }
 
 // The info strip under the table.
@@ -193,13 +236,16 @@ function drawFlippers() {
   strokeCap(ROUND);
   for (const flipper of flippers) {
     const tip = flipperTip(flipper);
-    line(flipper.layout.x, flipper.layout.y, tip.x, tip.y);
+    tableLine(flipper.layout.x, flipper.layout.y, tip.x, tip.y);
   }
 }
 
-// The table surface.
+// The room is dark. The table surface is a purple rectangle on top.
 function drawTable() {
-  background(20, 10, 40);
+  background(5, 0, 10);
+  noStroke();
+  fill(20, 10, 40);
+  tableRect(0, 0, TABLE.width, TABLE.height);
 }
 
 // Every wall in the WALLS list, as a glowing line.
@@ -207,7 +253,7 @@ function drawWalls() {
   stroke(0, 240, 255);
   strokeWeight(4);
   for (const wall of WALLS) {
-    line(wall.x1, wall.y1, wall.x2, wall.y2);
+    tableLine(wall.x1, wall.y1, wall.x2, wall.y2);
   }
 }
 
@@ -215,5 +261,5 @@ function drawWalls() {
 function drawBall() {
   noStroke();
   fill(220, 220, 235);
-  circle(ball.x, ball.y, BALL_RADIUS * 2);
+  tableCircle(ball.x, ball.y, BALL_RADIUS * 2);
 }

@@ -34,7 +34,9 @@ const UP_SHOT_POINTS = 500;    // Points for shooting the ball back up to the to
 const MIN_HIT_SPEED = 1;       // A hit slower than this doesn't score, so a resting ball can't farm points.
 const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hit. The target can't score again until it stops.
 const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
-const VIEW = "FLAT";      // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
+const CAMERA_DEPTH = 1;  // ANGLED view: how much smaller the far end looks. 0 = no angle.
+const CAMERA_TILT = 1.2;   // ANGLED view: how tall the table looks on screen. Smaller = flatter angle.
+const VIEW = "angled";     // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
 
 // ============================================================
 // TABLE LAYOUT: where everything is. Each spot is written ONCE,
