@@ -8,14 +8,28 @@ function drawGame() {
   drawWalls();
   drawPlunger();
   drawBumpers();
+  drawSpinners();
   drawTarget();
   drawFlippers();
   drawScore();
   if (!game.over) drawBall();
   drawMessage();
   drawHUD();
-  if (game.won) drawWin();
+  if (game.showingWin) drawWin();
   else if (game.over) drawGameOver();
+}
+
+// "Clue #1" and the clue, wrapped to fit. Used by the win and Game Over screens.
+function drawClue(top) {
+  noStroke();
+  textAlign(CENTER, CENTER);
+  fill(255, 43, 214);
+  textSize(22);
+  text("Clue #1", TABLE.width / 2, top);
+  fill(255, 255, 0);
+  textSize(18);
+  textAlign(CENTER, TOP);
+  text(CLUE, 30, top + 30, TABLE.width - 60, 200);  // wraps inside this box
 }
 
 // You win! Show the clue.
@@ -30,17 +44,13 @@ function drawWin() {
   fill(255);
   textSize(18);
   text("Score: " + Math.floor(game.score), TABLE.width / 2, 200);
-  fill(255, 43, 214);
-  textSize(22);
-  text("Clue #1", TABLE.width / 2, 270);
-  fill(255, 255, 0);
-  textSize(18);
-  textAlign(CENTER, TOP);
-  text(CLUE, 30, 300, TABLE.width - 60, 300);  // wraps inside this box
+  drawClue(270);
   fill(255);
-  textSize(14);
+  textSize(16);
   textAlign(CENTER, CENTER);
-  text("Press ENTER to play again", TABLE.width / 2, TABLE.height - 40);
+  text("Press ENTER to keep playing", TABLE.width / 2, TABLE.height - 60);
+  textSize(13);
+  text("How high can you go?", TABLE.width / 2, TABLE.height - 35);
 }
 
 // Bumpers: glowing circles that flash white when hit.
@@ -51,6 +61,28 @@ function drawBumpers() {
     if (bumper.flashFrames > 0) fill(255);
     else fill(120, 40, 160);
     circle(bumper.layout.x, bumper.layout.y, BUMPER_RADIUS * 2);
+  }
+}
+
+// Spinners: 4 arms and a hub. Bright while spinning, dim during the cooldown.
+function drawSpinners() {
+  let armColor = color(0, 240, 255);                          // ready
+  if (spin.phase !== "IDLE") armColor = color(255, 255, 0);   // spinning
+  else if (spin.cooldownFrames > 0) armColor = color(120, 120, 60);  // cooling down
+
+  strokeCap(ROUND);
+  for (const spinner of spinners) {
+    stroke(armColor);
+    strokeWeight(SPINNER_THICKNESS);
+    for (let arm = 0; arm < 4; arm++) {
+      const armAngle = spinner.angle + arm * (Math.PI / 2);
+      line(spinner.layout.x, spinner.layout.y,
+           spinner.layout.x + Math.cos(armAngle) * SPINNER_ARM,
+           spinner.layout.y + Math.sin(armAngle) * SPINNER_ARM);
+    }
+    noStroke();
+    fill(255);
+    circle(spinner.layout.x, spinner.layout.y, 10);  // the hub
   }
 }
 
@@ -70,7 +102,9 @@ function drawScore() {
   fill(255);
   textSize(18);
   textAlign(CENTER, TOP);
-  text(Math.floor(game.score) + " / " + WIN_SCORE, TABLE.width / 2, 12);
+  // Before winning, show progress toward the goal. After, just the score.
+  const goal = game.won ? "  WIN!" : " / " + WIN_SCORE;
+  text(Math.floor(game.score) + goal, TABLE.width / 2, 12);
 }
 
 // A pop-up message in the middle of the table, like "Ball lost!"
@@ -101,6 +135,7 @@ function drawGameOver() {
     fill(57, 255, 20);
     text("Next game: " + startingBalls() + " balls!", TABLE.width / 2, TABLE.height / 2 + 75);
   }
+  if (game.won) drawClue(TABLE.height / 2 + 110);
 }
 
 // The plunger: a block that fills the lane below its top.
@@ -135,7 +170,7 @@ function drawHUD() {
 
     fill(255);
     text("Hold SPACE, let go", 140, middleY - 8);
-    text("SHIFT or Z / = flippers", 140, middleY + 8);
+    text("SHIFT = flip   UP = spin", 140, middleY + 8);
   } else if (game.saveFramesLeft > 0) {
     fill(57, 255, 20);
     text("BALL SAVE ON", 10, middleY);

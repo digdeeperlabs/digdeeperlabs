@@ -25,7 +25,12 @@ const BUMPER_RADIUS = 18;      // How big the bumpers are.
 const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.
 const TARGET_SPEED = 1;         // How fast the moving target slides (pixels per frame).
 const TARGET_POINTS = 200;      // Points for hitting the moving target.
-const UP_SHOT_POINTS = 350;     // Points for shooting the ball back up to the top level.
+const SPINNER_ARM = 28;         // How long each spinner arm is, from the hub to the tip.
+const SPINNER_THICKNESS = 6;    // How fat the spinner arms are.
+const SPINNER_SPEED = 0.3;      // How fast spinners turn (radians per frame). Faster = harder smack.
+const SPINNER_COOLDOWN = 0.25;     // Seconds to wait after a spin before you can spin again.
+const SPINNER_POINTS = 50;      // Points when a spinning arm hits the ball.
+const UP_SHOT_POINTS = 500;    // Points for shooting the ball back up to the top level.
 const MIN_HIT_SPEED = 1;       // A hit slower than this doesn't score, so a resting ball can't farm points.
 const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hit. The target can't score again until it stops.
 const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
@@ -96,6 +101,15 @@ const WALLS = [
 const BUMPERS = [
   { x: 130, y: 170 },  // left
   { x: 230, y: 170 },  // right
+];
+
+// Spinners: 4 on the top level. (x, y) is the hub. Each has 4 arms, like a +.
+// Spaced so the ball (24 wide) always fits between spinners, bumpers and walls.
+const SPINNERS = [
+  { x: 60,  y: 140 },
+  { x: 70,  y: 250 },
+  { x: 190, y: 245 },
+  { x: 300, y: 210 },
 ];
 
 // The moving target: a short bar that slides left and right.

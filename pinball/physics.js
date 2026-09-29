@@ -22,6 +22,60 @@ const bumpers = BUMPERS.map((layout) => ({ layout: layout, flashFrames: 0 }));
 // (1 = right, -1 = left), and a flash timer. It can't score while flashing.
 const target = { x: TARGET.centerX, direction: 1, flashFrames: 0 };
 
+// Each spinner's backpack. It has the same shape as a flipper's (layout,
+// angle, turnSpeed), so it can use the flipper bounce recipe.
+// "scored" = already gave points this spin.
+const spinners = SPINNERS.map((layout) => ({ layout: layout, angle: 0, turnSpeed: 0, scored: false }));
+
+// All 4 spinners move together:
+//   "IDLE" = still,  "OUT" = turning the first half turn,  "BACK" = turning back
+const spin = { held: false, phase: "IDLE", turned: 0, cooldownFrames: 0 };
+const HALF_TURN = Math.PI;  // half a circle, in radians
+
+// Up Arrow starts a spin, if the spinners are still and the cooldown is over.
+function startSpin() {
+  if (spin.held && spin.phase === "IDLE" && spin.cooldownFrames === 0) {
+    spin.phase = "OUT";
+    for (const spinner of spinners) spinner.scored = false;
+  }
+}
+
+// Turn the spinners a tiny bit (called every substep).
+function turnSpinners() {
+  const step = SPINNER_SPEED / SUBSTEPS;
+  let change = 0;
+  if (spin.phase === "OUT") {
+    change = Math.min(step, HALF_TURN - spin.turned);
+    if (spin.turned + change >= HALF_TURN) spin.phase = "BACK";
+  } else if (spin.phase === "BACK") {
+    change = -Math.min(step, spin.turned);
+    if (spin.turned + change <= 0) {
+      spin.phase = "IDLE";
+      spin.cooldownFrames = SPINNER_COOLDOWN * 60;
+    }
+  }
+  spin.turned += change;
+  for (const spinner of spinners) {
+    spinner.angle = spin.turned;
+    spinner.turnSpeed = change * SUBSTEPS;  // per frame, same units as ball speed
+  }
+}
+
+// Bounce off all 4 arms. A spinning arm that smacks the ball scores once per spin.
+function bounceOffSpinner(spinner) {
+  for (let arm = 0; arm < 4; arm++) {
+    const armAngle = spinner.angle + arm * (Math.PI / 2);  // arms are a quarter turn apart
+    const tipX = spinner.layout.x + Math.cos(armAngle) * SPINNER_ARM;
+    const tipY = spinner.layout.y + Math.sin(armAngle) * SPINNER_ARM;
+    const hitSpeed = bounceOffLine(spinner.layout.x, spinner.layout.y, tipX, tipY,
+                                   BALL_RADIUS + SPINNER_THICKNESS / 2, WALL_BOUNCE, spinner);
+    if (hitSpeed >= MIN_HIT_SPEED && spin.phase !== "IDLE" && !spinner.scored) {
+      spinner.scored = true;
+      game.score += SPINNER_POINTS;
+    }
+  }
+}
+
 // The plunger's backpack: is Space held, and how far is it pulled (0 to 1)?
 const plunger = { held: false, pull: 0 };
 
@@ -38,7 +92,8 @@ const game = {
   score: 0,
   ballsLeft: BALLS_PER_GAME,
   over: false,
-  won: false,
+  won: false,           // reached WIN_SCORE this game
+  showingWin: false,    // the win screen is up (game paused)
   gamesLost: 0,         // lost games in a row (help mode: more starting balls)
   restartHeld: false,   // is Enter pressed?
   saveReady: true,      // can this ball still be saved?
@@ -52,6 +107,7 @@ function startNewGame() {
   game.ballsLeft = startingBalls();
   game.over = false;
   game.won = false;
+  game.showingWin = false;
   newBall();
 }
 
@@ -60,10 +116,12 @@ function startingBalls() {
   return Math.min(MAX_BALLS, BALLS_PER_GAME + game.gamesLost);
 }
 
-// Reached the goal? You win, and the clue shows.
+// Reached the goal for the first time this game? You win: pause and show the clue.
+// After that, the same game keeps going and the score keeps climbing.
 function checkWin() {
-  if (game.score >= WIN_SCORE) {
+  if (!game.won && game.score >= WIN_SCORE) {
     game.won = true;
+    game.showingWin = true;
     game.gamesLost = 0;
   }
 }
@@ -108,7 +166,7 @@ function loseBall(reason) {
   game.ballsLeft -= 1;
   if (game.ballsLeft <= 0) {
     game.over = true;
-    game.gamesLost += 1;
+    if (!game.won) game.gamesLost += 1;
   } else {
     showMessage(reason);
     newBall();
@@ -120,6 +178,7 @@ function updateTimers() {
   if (game.saveFramesLeft > 0) game.saveFramesLeft -= 1;
   if (game.messageFramesLeft > 0) game.messageFramesLeft -= 1;
   if (target.flashFrames > 0) target.flashFrames -= 1;
+  if (spin.cooldownFrames > 0) spin.cooldownFrames -= 1;
   for (const bumper of bumpers) {
     if (bumper.flashFrames > 0) bumper.flashFrames -= 1;
   }
@@ -220,8 +279,14 @@ function checkLaunch() {
 // Checking walls after every tiny move stops a fast ball from
 // jumping right over a thin wall (called "tunneling").
 function updatePhysics() {
-  // Game Over or a win: nothing moves until the player presses Enter.
-  if (game.over || game.won) {
+  // Win screen: paused. Enter = keep playing this game.
+  if (game.showingWin) {
+    if (game.restartHeld) game.showingWin = false;
+    return;
+  }
+
+  // Game Over: nothing moves. Enter = new game.
+  if (game.over) {
     if (game.restartHeld) startNewGame();
     return;
   }
@@ -230,12 +295,14 @@ function updatePhysics() {
   moveTarget();
   scoreTime();
   updatePlunger();
+  startSpin();
 
   const yBefore = ball.y;
   for (let step = 0; step < SUBSTEPS; step++) {
     for (const flipper of flippers) {
       turnFlipper(flipper);
     }
+    turnSpinners();
 
     // Gravity (the table's slope) speeds the ball up toward the player.
     ball.vy += GRAVITY / SUBSTEPS;
@@ -252,6 +319,9 @@ function updatePhysics() {
     }
     for (const bumper of bumpers) {
       bounceOffBumper(bumper);
+    }
+    for (const spinner of spinners) {
+      bounceOffSpinner(spinner);
     }
     bounceOffTarget();
     // The top of the plunger is a floor for the plunger lane. No bounce.
@@ -332,7 +402,7 @@ function bounceOffFlipper(flipper) {
 
 // If the ball is touching the line from (x1, y1) to (x2, y2), push it out
 // and bounce it. "reach" is how close counts as touching. If the line is a
-// flipper, its turning speed gets added into the bounce.
+// flipper or a spinner arm, its turning speed gets added into the bounce.
 // Gives back how hard the ball hit (0 = no hit).
 function bounceOffLine(x1, y1, x2, y2, reach, bounciness, flipper) {
   // Find the point on the line closest to the ball.

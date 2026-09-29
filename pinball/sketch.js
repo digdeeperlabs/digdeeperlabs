@@ -8,7 +8,8 @@
 const keysDown = {};
 window.addEventListener("keydown", (event) => {
   keysDown[event.code] = true;
-  if (event.code === "Space") event.preventDefault();  // stop Space from scrolling the page
+  // Stop Space and Up Arrow from scrolling the page.
+  if (event.code === "Space" || event.code === "ArrowUp") event.preventDefault();
 });
 window.addEventListener("keyup", (event) => { keysDown[event.code] = false; });
 // If the window loses focus, let go of every key so nothing gets stuck.
@@ -27,6 +28,7 @@ function readInput() {
   rightFlipper.pressed = keysDown["ShiftRight"] || keysDown["Slash"];
   plunger.held = keysDown["Space"];
   game.restartHeld = keysDown["Enter"];
+  spin.held = keysDown["ArrowUp"];
 }
 
 function draw() {
