@@ -123,7 +123,10 @@ const game = {
   won: false,           // reached WIN_SCORE this game
   showingWin: false,    // the win screen is up (game paused)
   gamesLost: 0,         // lost games in a row (help mode: more starting balls)
-  restartHeld: false,   // is Enter pressed?
+  enteringInitials: false,  // the "type your initials" screen is up
+  initials: "",             // letters typed so far
+  savedAs: "",              // initials the last score was saved under
+  showingLeaderboard: false, // the top 15 screen is up
   saveReady: true,      // can this ball still be saved?
   saveFramesLeft: 0,    // ball save is on while this is above 0
   message: "",
@@ -136,8 +139,49 @@ function startNewGame() {
   game.over = false;
   game.won = false;
   game.showingWin = false;
+  game.enteringInitials = false;
+  game.savedAs = "";
+  game.showingLeaderboard = false;
   for (const tube of tubes) tube.lit = false;  // (lit tubes stay lit between balls, not between games)
   newBall();
+}
+
+// One press of Enter does one thing, depending on which screen is up.
+function pressEnter() {
+  if (game.enteringInitials) {
+    if (game.initials.length === 3) submitInitials();
+  } else if (game.showingLeaderboard) {
+    startNewGame();
+  } else if (game.showingWin) {
+    game.showingWin = false;  // keep playing this game
+  } else if (game.over) {
+    startNewGame();
+  }
+}
+
+// Typing initials: up to 3 letters. Backspace takes the last one off.
+function typeInitial(letter) {
+  if (game.enteringInitials && game.initials.length < 3) game.initials += letter;
+}
+
+function eraseInitial() {
+  if (game.enteringInitials) game.initials = game.initials.slice(0, -1);
+}
+
+// Save to the leaderboard, then show it.
+function submitInitials() {
+  game.enteringInitials = false;
+  game.savedAs = game.initials;
+  saveScore(game.initials, Math.floor(game.score));
+  game.showingLeaderboard = true;
+}
+
+// On the Game Over screen, L shows the leaderboard.
+function pressLeaderboardKey() {
+  if (game.over && !game.enteringInitials && !game.showingLeaderboard) {
+    loadLeaderboard();
+    game.showingLeaderboard = true;
+  }
 }
 
 // Help mode: 1 extra starting ball for every lost game in a row, up to MAX_BALLS.
@@ -196,6 +240,10 @@ function loseBall(reason) {
   if (game.ballsLeft <= 0) {
     game.over = true;
     if (!game.won) game.gamesLost += 1;
+    if (game.won) {         // winners get to put their initials on the leaderboard
+      game.enteringInitials = true;
+      game.initials = "";
+    }
   } else {
     showMessage(reason);
     newBall();
@@ -308,17 +356,8 @@ function checkLaunch() {
 // Checking walls after every tiny move stops a fast ball from
 // jumping right over a thin wall (called "tunneling").
 function updatePhysics() {
-  // Win screen: paused. Enter = keep playing this game.
-  if (game.showingWin) {
-    if (game.restartHeld) game.showingWin = false;
-    return;
-  }
-
-  // Game Over: nothing moves. Enter = new game.
-  if (game.over) {
-    if (game.restartHeld) startNewGame();
-    return;
-  }
+  // Win screen or Game Over: nothing moves. (Enter is handled by pressEnter.)
+  if (game.showingWin || game.over) return;
 
   updateTimers();
   moveTarget();

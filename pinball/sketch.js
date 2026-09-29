@@ -10,6 +10,14 @@ window.addEventListener("keydown", (event) => {
   keysDown[event.code] = true;
   // Stop Space and Up Arrow from scrolling the page.
   if (event.code === "Space" || event.code === "ArrowUp") event.preventDefault();
+
+  // Presses, not holds: each press does one thing. (event.repeat is true when
+  // a held key auto-repeats, so holding Enter doesn't press it over and over.)
+  if (event.repeat) return;
+  if (event.code === "Enter") pressEnter();
+  if (event.code === "Backspace") eraseInitial();
+  if (event.code === "KeyL") pressLeaderboardKey();
+  if (/^Key[A-Z]$/.test(event.code)) typeInitial(event.code.slice(3));  // "KeyA" -> "A"
 });
 window.addEventListener("keyup", (event) => { keysDown[event.code] = false; });
 // If the window loses focus, let go of every key so nothing gets stuck.
@@ -27,7 +35,6 @@ function readInput() {
   leftFlipper.pressed = keysDown["ShiftLeft"] || keysDown["KeyZ"];
   rightFlipper.pressed = keysDown["ShiftRight"] || keysDown["Slash"];
   plunger.held = keysDown["Space"];
-  game.restartHeld = keysDown["Enter"];
   spin.held = keysDown["ArrowUp"];
 }
 

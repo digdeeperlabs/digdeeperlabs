@@ -92,29 +92,39 @@ Keep all art and names original.
 - **View:** Emmet wants a diagonal view. Physics stays flat. Only draw.js tilts the picture, with a `VIEW = "FLAT"` / `"ANGLED"` setting.
 - **Win condition:** the old idea ("light 3 targets") no longer fits. Decide in Session 2.
 
-### What works (steps 1 to 5 of the Stage 1 plan, tested)
+### Design decisions from Session 2 (these replace older ideas above)
 
-- Ball, gravity, walls, substeps (no tunneling), speed cap.
-- 2 flippers on Left/Right Shift, backup keys Z and /. Emmet wrote the right flipper line himself.
-- Plunger with power bar, weak launch rule, on-screen controls.
-- Outer lanes, 3 balls, ball save (3 seconds, once per ball), Game Over, Enter to restart.
-- Game shrinks to fit any screen size.
-- Temporary chute under the top-level gap, so the ball drops straight onto the right side instead of flying into the right outer lane.
+- **Luck fixes:** bumpers moved to the top level (Emmet placed them). Outer lanes kept but narrowed with **OUTLANE_WIDTH = 27**.
+- **Win condition:** reach **WIN_SCORE = 2500** in one game. The win screen shows Clue #1 (`clue.js`, written by Emmet, left in plain text by his choice). Enter = keep playing the same game; the clue shows again on Game Over.
+- **Help mode:** each lost game in a row adds 1 starting ball, up to **MAX_BALLS = 5**. Resets on a win or a page reload.
+- **Scoring now:** 10/second alive, target 150, tube 250, up shot 500, spinner hit 50. Light both dead-end tubes = extra ball (then they reset). Tubes stay lit between balls, reset each game.
+- **Spinners:** Up Arrow, half turn out and back, **SPINNER_COOLDOWN = 0.25**.
+- **View:** angled, **CAMERA_DEPTH = 1**, **CAMERA_TILT = 1.2**.
+- **Leaderboard:** shared, stored in a Google Sheet the parent owns (Apps Script web app, URL in `leaderboard.js`, script copy in `leaderboard-script.gs`). Top 15, 3 letters A to Z, winners only (2,500+). The sheet checks every entry itself (never trust the player's computer). If the sheet can't be reached, the game says "Leaderboard offline" and keeps working. To remove an entry, delete its row in the sheet. If the script changes, the parent must redeploy a new version.
+- **Home page** links to the game.
 
-### Built but NOT tested yet (step 6)
+### What works (tested)
 
-- 2 bumpers with a kick, the moving target (200 points, can't farm points by resting on it), score on screen and on Game Over, up shot (+350).
+- Physics: ball, gravity, walls, substeps (no tunneling), speed cap, flippers, plunger with power bar and weak launch rule.
+- Outer lanes, balls, ball save, Game Over, win screen with clue, help mode.
+- Bumpers, moving target, spinners, dead-end tubes (Emmet fixed the "ball above the tube counts as in the tube" Ghost Bug himself), angled camera, fits any screen.
+- Initials entry and leaderboard flow, checked with a headless run of the game brain. The sheet reads correctly, rejects a fake low score, and sends the browser permission header.
+
+### Built but NOT tested in the browser yet
+
+- The leaderboard screen itself, and a real save of a 2,500+ score. The first real entry should be Emmet's.
 
 ### Known issues
 
-- Getting back up through the chute is very hard (only a precise left-flipper shot). The two-way right tube in step 9 replaces the chute.
+- Getting back up through the chute is very hard. The two-way right tube (not built) would replace it.
+- The "15" is written twice: `LEADERBOARD_SIZE` in `leaderboard.js` and `TOP_COUNT` in the sheet script. Change both together.
+- No first-time-player playtest yet. Do one before sharing the link.
 
 ### Next time
 
-1. Test step 6. Emmet owes two predictions: a bumper hit at speed 5 leaves at what speed? At speed 18? (Answer: bounces back at 5, plus a kick of 6 = 11. At 18: 18 + 6 = 24, capped to MAX_SPEED 20.)
-2. Ask Emmet: does "no extra balls" also apply to the dead-end tubes?
-3. Step 7: spinners on Up Arrow.
-4. Step 8: diagonal camera.
-5. Step 9: the two-way right tube (move the up shot reward to it) and the dead-end tubes.
-6. Add the game to the home page.
-7. Session 2 goals from the plan above: win condition and the clue.
+1. Emmet plays a real 2,500+ game and saves the first leaderboard entry. Check it shows up in the sheet.
+2. Playtest with someone who has never played. Watch without helping. Time to first win should be 5 to 10 minutes.
+3. Tune from the playtest (WIN_SCORE, OUTLANE_WIDTH, BALL_SAVE_SECONDS, BUMPER_KICK).
+4. Only if time allows: the two-way right tube, sounds.
+5. Share the link.
+6. When testing with a low WIN_SCORE, always set it back to 2500 before committing.

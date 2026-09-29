@@ -16,7 +16,7 @@ const PLUNGER_PULL_TIME = 60;   // Frames to pull all the way back. 60 frames = 
 const PLUNGER_MIN_PULL = 0.1;   // Pulls smaller than this don't launch, so a quick tap doesn't count.
 const WEAK_LAUNCHES_ALLOWED = 3; // Weak launches in a row before you lose the ball.
 const BALLS_PER_GAME = 3;       // How many balls you start with.
-const WIN_SCORE = 2500;         // Reach this score in one game to win and see the clue.
+const WIN_SCORE = 2500;        // Reach this score in one game to win and see the clue.
 const MAX_BALLS = 5;            // Help mode: each lost game adds 1 starting ball, up to this many.
 const BALL_SAVE_SECONDS = 3;    // A new ball that drains this fast comes back free (once per ball).
 const MESSAGE_SECONDS = 2;      // How long pop-up messages stay on screen.
@@ -37,7 +37,7 @@ const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hi
 const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
 const CAMERA_DEPTH = 1;  // ANGLED view: how much smaller the far end looks. 0 = no angle.
 const CAMERA_TILT = 1.2;   // ANGLED view: how tall the table looks on screen. Smaller = flatter angle.
-const VIEW = "angled";     // "FLAT" = straight down from above. ("ANGLED" comes in step 8.)
+const VIEW = "ANGLED";     // "FLAT" = straight down from above. "ANGLED" = seen from a diagonal, like a real machine.
 
 // ============================================================
 // TABLE LAYOUT: where everything is. Each spot is written ONCE,

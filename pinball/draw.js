@@ -60,7 +60,95 @@ function drawGame() {
   drawMessage();
   drawHUD();
   if (game.showingWin) drawWin();
+  else if (game.enteringInitials) drawEnterInitials();
+  else if (game.showingLeaderboard) drawLeaderboard();
   else if (game.over) drawGameOver();
+}
+
+// The top 15. Your new entry is highlighted.
+function drawLeaderboard() {
+  noStroke();
+  fill(0, 0, 0, 220);
+  rect(0, 0, TABLE.width, TABLE.height + HUD_HEIGHT);
+  textAlign(CENTER, CENTER);
+  fill(255, 43, 214);
+  textSize(30);
+  text("TOP " + LEADERBOARD_SIZE, TABLE.width / 2, 60);
+
+  textSize(16);
+  if (leaderboard.status === "loading") {
+    fill(255);
+    text("Loading...", TABLE.width / 2, 300);
+  } else if (leaderboard.status === "offline") {
+    fill(255, 60, 60);
+    text("Leaderboard offline", TABLE.width / 2, 300);
+    fill(255);
+    text("Your game still counts. Try again later!", TABLE.width / 2, 330);
+  } else if (leaderboard.status === "rejected") {
+    fill(255, 60, 60);
+    text("The leaderboard said no:", TABLE.width / 2, 300);
+    text(leaderboard.message, TABLE.width / 2, 330);
+  } else if (leaderboard.scores.length === 0) {
+    fill(255);
+    text("No scores yet. Be the first!", TABLE.width / 2, 300);
+  } else {
+    drawLeaderboardRows();
+  }
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(14);
+  text("Press ENTER to play again", TABLE.width / 2, TABLE.height + 10);
+}
+
+// One row per score: rank, initials, score.
+function drawLeaderboardRows() {
+  const rowHeight = 36;
+  let highlighted = false;
+  leaderboard.scores.forEach((entry, i) => {
+    const y = 115 + i * rowHeight;
+    // Highlight your new score (just the first match, in case of a tie).
+    const isYours = !highlighted && entry.initials === game.savedAs &&
+                    entry.score === Math.floor(game.score);
+    if (isYours) highlighted = true;
+    fill(isYours ? color(255, 255, 0) : color(255));
+    textSize(18);
+    textAlign(RIGHT, CENTER);
+    text((i + 1) + ".", 90, y);
+    textAlign(LEFT, CENTER);
+    text(entry.initials, 120, y);
+    textAlign(RIGHT, CENTER);
+    text(entry.score, TABLE.width - 60, y);
+  });
+}
+
+// Type your initials: 3 big letter slots, like an arcade machine.
+function drawEnterInitials() {
+  noStroke();
+  fill(0, 0, 0, 200);
+  rect(0, 0, TABLE.width, TABLE.height + HUD_HEIGHT);
+  textAlign(CENTER, CENTER);
+  fill(57, 255, 20);
+  textSize(30);
+  text("LEADERBOARD!", TABLE.width / 2, 200);
+  fill(255);
+  textSize(20);
+  text("Score: " + Math.floor(game.score), TABLE.width / 2, 245);
+  textSize(16);
+  text("Type your initials", TABLE.width / 2, 300);
+
+  // 3 slots: a typed letter, or _ for an empty slot.
+  textSize(48);
+  fill(255, 255, 0);
+  for (let slot = 0; slot < 3; slot++) {
+    const letter = game.initials[slot] || "_";
+    text(letter, TABLE.width / 2 + (slot - 1) * 50, 370);
+  }
+
+  fill(255);
+  textSize(14);
+  text("BACKSPACE to fix", TABLE.width / 2, 440);
+  text(game.initials.length === 3 ? "Press ENTER to save" : "", TABLE.width / 2, 465);
 }
 
 // "Clue #1" and the clue, wrapped to fit. Used by the win and Game Over screens.
@@ -175,9 +263,16 @@ function drawGameOver() {
   text("Score: " + Math.floor(game.score), TABLE.width / 2, TABLE.height / 2 + 5);
   textSize(16);
   text("Press ENTER to play again", TABLE.width / 2, TABLE.height / 2 + 45);
+  textSize(13);
+  text("Press L for the leaderboard", TABLE.width / 2, TABLE.height - 15);
+  textSize(16);
   if (startingBalls() > BALLS_PER_GAME) {
     fill(57, 255, 20);
     text("Next game: " + startingBalls() + " balls!", TABLE.width / 2, TABLE.height / 2 + 75);
+  }
+  if (game.savedAs) {
+    fill(57, 255, 20);
+    text("Saved as " + game.savedAs, TABLE.width / 2, TABLE.height / 2 + 75);
   }
   if (game.won) drawClue(TABLE.height / 2 + 110);
 }
