@@ -14,7 +14,33 @@ function drawGame() {
   if (!game.over) drawBall();
   drawMessage();
   drawHUD();
-  if (game.over) drawGameOver();
+  if (game.won) drawWin();
+  else if (game.over) drawGameOver();
+}
+
+// You win! Show the clue.
+function drawWin() {
+  noStroke();
+  fill(0, 0, 0, 200);
+  rect(0, 0, TABLE.width, TABLE.height + HUD_HEIGHT);
+  textAlign(CENTER, CENTER);
+  fill(57, 255, 20);
+  textSize(40);
+  text("YOU WIN!", TABLE.width / 2, 150);
+  fill(255);
+  textSize(18);
+  text("Score: " + Math.floor(game.score), TABLE.width / 2, 200);
+  fill(255, 43, 214);
+  textSize(22);
+  text("Clue #1", TABLE.width / 2, 270);
+  fill(255, 255, 0);
+  textSize(18);
+  textAlign(CENTER, TOP);
+  text(CLUE, 30, 300, TABLE.width - 60, 300);  // wraps inside this box
+  fill(255);
+  textSize(14);
+  textAlign(CENTER, CENTER);
+  text("Press ENTER to play again", TABLE.width / 2, TABLE.height - 40);
 }
 
 // Bumpers: glowing circles that flash white when hit.
@@ -44,7 +70,7 @@ function drawScore() {
   fill(255);
   textSize(18);
   textAlign(CENTER, TOP);
-  text(Math.floor(game.score), TABLE.width / 2, 12);
+  text(Math.floor(game.score) + " / " + WIN_SCORE, TABLE.width / 2, 12);
 }
 
 // A pop-up message in the middle of the table, like "Ball lost!"
@@ -71,6 +97,10 @@ function drawGameOver() {
   text("Score: " + Math.floor(game.score), TABLE.width / 2, TABLE.height / 2 + 5);
   textSize(16);
   text("Press ENTER to play again", TABLE.width / 2, TABLE.height / 2 + 45);
+  if (startingBalls() > BALLS_PER_GAME) {
+    fill(57, 255, 20);
+    text("Next game: " + startingBalls() + " balls!", TABLE.width / 2, TABLE.height / 2 + 75);
+  }
 }
 
 // The plunger: a block that fills the lane below its top.

@@ -38,6 +38,8 @@ const game = {
   score: 0,
   ballsLeft: BALLS_PER_GAME,
   over: false,
+  won: false,
+  gamesLost: 0,         // lost games in a row (help mode: more starting balls)
   restartHeld: false,   // is Enter pressed?
   saveReady: true,      // can this ball still be saved?
   saveFramesLeft: 0,    // ball save is on while this is above 0
@@ -47,9 +49,23 @@ const game = {
 
 function startNewGame() {
   game.score = 0;
-  game.ballsLeft = BALLS_PER_GAME;
+  game.ballsLeft = startingBalls();
   game.over = false;
+  game.won = false;
   newBall();
+}
+
+// Help mode: 1 extra starting ball for every lost game in a row, up to MAX_BALLS.
+function startingBalls() {
+  return Math.min(MAX_BALLS, BALLS_PER_GAME + game.gamesLost);
+}
+
+// Reached the goal? You win, and the clue shows.
+function checkWin() {
+  if (game.score >= WIN_SCORE) {
+    game.won = true;
+    game.gamesLost = 0;
+  }
 }
 
 // A fresh ball: new weak-launch count, and it gets a ball save.
@@ -92,6 +108,7 @@ function loseBall(reason) {
   game.ballsLeft -= 1;
   if (game.ballsLeft <= 0) {
     game.over = true;
+    game.gamesLost += 1;
   } else {
     showMessage(reason);
     newBall();
@@ -203,8 +220,8 @@ function checkLaunch() {
 // Checking walls after every tiny move stops a fast ball from
 // jumping right over a thin wall (called "tunneling").
 function updatePhysics() {
-  // Game Over: nothing moves until the player presses Enter.
-  if (game.over) {
+  // Game Over or a win: nothing moves until the player presses Enter.
+  if (game.over || game.won) {
     if (game.restartHeld) startNewGame();
     return;
   }
@@ -244,6 +261,7 @@ function updatePhysics() {
   capSpeed();
   checkLaunch();
   checkUpShot(yBefore);
+  checkWin();
 
   // If the ball falls out the bottom, it drained.
   if (ball.y - BALL_RADIUS > TABLE.height) {

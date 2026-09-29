@@ -16,9 +16,12 @@ const PLUNGER_PULL_TIME = 60;   // Frames to pull all the way back. 60 frames = 
 const PLUNGER_MIN_PULL = 0.1;   // Pulls smaller than this don't launch, so a quick tap doesn't count.
 const WEAK_LAUNCHES_ALLOWED = 3; // Weak launches in a row before you lose the ball.
 const BALLS_PER_GAME = 3;       // How many balls you start with.
+const WIN_SCORE = 2500;         // Reach this score in one game to win and see the clue.
+const MAX_BALLS = 5;            // Help mode: each lost game adds 1 starting ball, up to this many.
 const BALL_SAVE_SECONDS = 3;    // A new ball that drains this fast comes back free (once per ball).
 const MESSAGE_SECONDS = 2;      // How long pop-up messages stay on screen.
-const BUMPER_RADIUS = 18;       // How big the bumpers are.
+const OUTLANE_WIDTH = 27;       // How wide the side lanes are. Narrower = harder to fall in. Keep it above 25 (the ball is 24 wide) or the ball gets stuck on top.
+const BUMPER_RADIUS = 18;      // How big the bumpers are.
 const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.
 const TARGET_SPEED = 1;         // How fast the moving target slides (pixels per frame).
 const TARGET_POINTS = 200;      // Points for hitting the moving target.
@@ -80,18 +83,19 @@ const WALLS = [
   { x1: TOP_GAP.right, y1: TOP_GAP.top, x2: TOP_GAP.right, y2: TOP_GAP.bottom },
 
   // Outer lanes: a skinny lane down each side. Fall in and the ball is gone.
-  { x1: 32,  y1: 470, x2: 32,  y2: 700 },  // left outer lane wall
-  { x1: 328, y1: 470, x2: 328, y2: 700 },  // right outer lane wall
+  // The left lane starts at the left side (x = 0). The right lane ends at the plunger lane wall (x = 360).
+  { x1: OUTLANE_WIDTH,       y1: 470, x2: OUTLANE_WIDTH,       y2: 700 },  // left outer lane wall
+  { x1: 360 - OUTLANE_WIDTH, y1: 470, x2: 360 - OUTLANE_WIDTH, y2: 700 },  // right outer lane wall
 
   // Guide walls: slope down from the outer lane walls into each flipper's pivot.
-  { x1: 32,  y1: 540, x2: 105, y2: 610 },  // left guide
-  { x1: 328, y1: 540, x2: 255, y2: 610 },  // right guide
+  { x1: OUTLANE_WIDTH,       y1: 540, x2: 105, y2: 610 },  // left guide
+  { x1: 360 - OUTLANE_WIDTH, y1: 540, x2: 255, y2: 610 },  // right guide
 ];
 
-// Bumpers: round, just above the flippers. (x, y) is the center.
+// Bumpers: round, on the top level. (x, y) is the center.
 const BUMPERS = [
-  { x: 130, y: 490 },  // left
-  { x: 230, y: 490 },  // right
+  { x: 130, y: 170 },  // left
+  { x: 230, y: 170 },  // right
 ];
 
 // The moving target: a short bar that slides left and right.

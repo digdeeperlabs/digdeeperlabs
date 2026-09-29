@@ -56,6 +56,23 @@
       animation: blink 1.2s steps(2, start) infinite;
     }
 
+    .game {
+      font-size: clamp(1rem, 4vw, 1.6rem);
+      color: #00f0ff;
+      text-decoration: none;
+      text-shadow: 0 0 8px #00f0ff;
+      padding: 1rem 1.5rem;
+      border: 3px solid #00f0ff;
+      box-shadow: 0 0 12px #00f0ff;
+    }
+
+    .game:hover,
+    .game:focus {
+      color: #fff;
+      background: #00f0ff;
+      text-shadow: none;
+    }
+
     @keyframes blink {
       to { visibility: hidden; }
     }
@@ -67,6 +84,7 @@
 </head>
 <body>
   <h1>Dig Deeper<br>Labs</h1>
+  <a class="game" href="pinball/">&#9654; PINBALL</a>
   <p>&gt; Get ready, Games coming soon_</p>
 </body>
 </html>
