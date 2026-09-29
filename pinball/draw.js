@@ -48,6 +48,7 @@ function tableRect(x, y, width, height) {
 
 function drawGame() {
   drawTable();
+  drawTubes();
   drawWalls();
   drawPlunger();
   drawBumpers();
@@ -246,6 +247,17 @@ function drawTable() {
   noStroke();
   fill(20, 10, 40);
   tableRect(0, 0, TABLE.width, TABLE.height);
+}
+
+// Dead-end tubes: dark inside, bright orange when lit.
+function drawTubes() {
+  noStroke();
+  for (const tube of tubes) {
+    const t = tube.layout;
+    if (tube.lit) fill(255, 140, 0);
+    else fill(40, 20, 60);
+    tableRect(t.left, t.top, t.right - t.left, t.bottom - t.top);
+  }
 }
 
 // Every wall in the WALLS list, as a glowing line.

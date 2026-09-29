@@ -24,7 +24,8 @@ const OUTLANE_WIDTH = 27;       // How wide the side lanes are. Narrower = harde
 const BUMPER_RADIUS = 18;      // How big the bumpers are.
 const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.
 const TARGET_SPEED = 1;         // How fast the moving target slides (pixels per frame).
-const TARGET_POINTS = 200;      // Points for hitting the moving target.
+const TUBE_POINTS = 250;        // Points for getting the ball to the back of a dead-end tube. Light both = extra ball.
+const TARGET_POINTS = 150;     // Points for hitting the moving target.
 const SPINNER_ARM = 28;         // How long each spinner arm is, from the hub to the tip.
 const SPINNER_THICKNESS = 6;    // How fat the spinner arms are.
 const SPINNER_SPEED = 0.3;      // How fast spinners turn (radians per frame). Faster = harder smack.
@@ -99,6 +100,21 @@ const WALLS = [
   { x1: 360 - OUTLANE_WIDTH, y1: 540, x2: 255, y2: 610 },  // right guide
 ];
 
+// Dead-end tubes on the bottom level. Open at the bottom, closed at the top.
+// Shoot the ball in, it reaches the back (top), lights up, and rolls back out.
+// Each tube sits above a guide wall, so the ball rolls out toward a flipper.
+const DEAD_END_TUBES = [
+  { left: 40,  right: 72,  top: 320, bottom: 410 },  // left tube, next to the left wall
+  { left: 296, right: 328, top: 345, bottom: 430 },  // right tube, next to the chute
+];
+
+// Build each tube's walls from its numbers above: two sides and a closed top.
+for (const tube of DEAD_END_TUBES) {
+  WALLS.push({ x1: tube.left,  y1: tube.top, x2: tube.left,  y2: tube.bottom });
+  WALLS.push({ x1: tube.right, y1: tube.top, x2: tube.right, y2: tube.bottom });
+  WALLS.push({ x1: tube.left,  y1: tube.top, x2: tube.right, y2: tube.top });
+}
+
 // Bumpers: round, on the top level. (x, y) is the center.
 const BUMPERS = [
   { x: 130, y: 170 },  // left
@@ -115,11 +131,11 @@ const SPINNERS = [
 ];
 
 // The moving target: a short bar that slides left and right.
-// It stays to the left of the chute so they never overlap.
+// It stays between the left tube and the chute, with room for the ball.
 const TARGET = {
   y: 390,
-  centerX: 150,   // middle of its slide
-  range: 60,      // how far it slides each way from the middle
+  centerX: 170,   // middle of its slide
+  range: 40,      // how far it slides each way from the middle
   width: 50,
   thickness: 10,
 };

@@ -76,6 +76,34 @@ function bounceOffSpinner(spinner) {
   }
 }
 
+// Each dead-end tube's backpack: is it lit, and has the ball already scored
+// on this trip in? (So one trip = one score, even if the ball rattles around.)
+const tubes = DEAD_END_TUBES.map((layout) => ({ layout: layout, lit: false, scoredThisTrip: false }));
+
+// Did the ball reach the back of a tube? Score, light it, and check for both lit.
+function checkTubes() {
+  for (const tube of tubes) {
+    const t = tube.layout;
+    const insideTube = ball.x > t.left && ball.x < t.right && ball.y < t.bottom;
+    const atBack = insideTube && ball.y < t.top + BALL_RADIUS + 4;
+
+    if (atBack && !tube.scoredThisTrip) {
+      tube.scoredThisTrip = true;
+      tube.lit = true;
+      game.score += TUBE_POINTS;
+      showMessage("Tube! +" + TUBE_POINTS);
+    }
+    if (!insideTube) tube.scoredThisTrip = false;  // left the tube: next trip can score
+  }
+
+  // Both lit: extra ball! Then they turn off so you can do it again.
+  if (tubes.every((tube) => tube.lit)) {
+    game.ballsLeft += 1;
+    showMessage("Both tubes: EXTRA BALL!");
+    for (const tube of tubes) tube.lit = false;
+  }
+}
+
 // The plunger's backpack: is Space held, and how far is it pulled (0 to 1)?
 const plunger = { held: false, pull: 0 };
 
@@ -108,6 +136,7 @@ function startNewGame() {
   game.over = false;
   game.won = false;
   game.showingWin = false;
+  for (const tube of tubes) tube.lit = false;  // (lit tubes stay lit between balls, not between games)
   newBall();
 }
 
@@ -331,6 +360,7 @@ function updatePhysics() {
   capSpeed();
   checkLaunch();
   checkUpShot(yBefore);
+  checkTubes();
   checkWin();
 
   // If the ball falls out the bottom, it drained.
