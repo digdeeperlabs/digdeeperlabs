@@ -84,7 +84,7 @@ const tubes = DEAD_END_TUBES.map((layout) => ({ layout: layout, lit: false, scor
 function checkTubes() {
   for (const tube of tubes) {
     const t = tube.layout;
-    const insideTube = ball.x > t.left && ball.x < t.right && ball.y < t.bottom;
+   const insideTube = ball.x > t.left && ball.x < t.right && ball.y < t.bottom && ball.y > t.top;
     const atBack = insideTube && ball.y < t.top + BALL_RADIUS + 4;
 
     if (atBack && !tube.scoredThisTrip) {
