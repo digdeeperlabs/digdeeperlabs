@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinball Leaderboard | Dig Deeper Labs</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      gap: 1.5rem;
+      background: radial-gradient(ellipse at center, #1a0033 0%, #05000a 70%);
+      color: #fff;
+      font-family: monospace;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #ff2bd6;
+      text-shadow: 0 0 6px #ff2bd6, 0 0 20px #ff2bd6;
+    }
+    .goal { color: #39ff14; font-size: 1.1rem; }
+    table { border-collapse: collapse; font-size: 1.4rem; min-width: 260px; }
+    td { padding: 0.35rem 1rem; }
+    td.rank { text-align: right; color: #00f0ff; }
+    td.name { text-align: left; }
+    td.score { text-align: right; color: #ffff00; }
+    .status { font-size: 1.1rem; }
+    a { color: #00f0ff; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>TOP 15</h1>
+  <p class="goal" id="goal"></p>
+  <p class="status" id="status">Loading...</p>
+  <table id="board"></table>
+  <a href="./">Back to the game</a>
+
+  <!-- Same file the game uses to talk to the sheet, so the address is in one place. -->
+  <script src="table.js"></script>
+  <script src="leaderboard.js"></script>
+  <script>
+    document.getElementById("goal").textContent =
+      "Win a game (" + WIN_SCORE.toLocaleString() + "+) to get on the board!";
+
+    // Show the scores as table rows: rank, initials, score.
+    function showScores() {
+      const status = document.getElementById("status");
+      const board = document.getElementById("board");
+
+      if (leaderboard.status === "loading") return;  // still waiting
+      clearInterval(checker);
+
+      if (leaderboard.status === "offline") {
+        status.textContent = "Leaderboard offline. Try again later!";
+      } else if (leaderboard.scores.length === 0) {
+        status.textContent = "No scores yet. Be the first!";
+      } else {
+        status.textContent = "";
+        leaderboard.scores.forEach((entry, i) => {
+          const row = board.insertRow();
+          row.insertCell().textContent = (i + 1) + ".";
+          row.insertCell().textContent = entry.initials;
+          row.insertCell().textContent = entry.score;
+          row.cells[0].className = "rank";
+          row.cells[1].className = "name";
+          row.cells[2].className = "score";
+        });
+      }
+    }
+
+    loadLeaderboard();
+    const checker = setInterval(showScores, 200);  // check 5 times a second until the answer arrives
+  </script>
+</body>
+</html>

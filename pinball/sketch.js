@@ -38,6 +38,15 @@ function readInput() {
   spin.held = keysDown["ArrowUp"];
 }
 
+// p5 runs this when the mouse is clicked. Clicking the "Leaderboard" link
+// opens the leaderboard page in a new tab.
+function mouseClicked() {
+  const box = LEADERBOARD_LINK;
+  const insideX = mouseX >= box.x && mouseX <= box.x + box.width;
+  const insideY = mouseY >= box.y && mouseY <= box.y + box.height;
+  if (insideX && insideY) window.open("leaderboard.html", "_blank");
+}
+
 function draw() {
   readInput();      // Input
   updatePhysics();  // Update

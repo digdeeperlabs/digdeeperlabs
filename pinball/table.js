@@ -49,6 +49,10 @@ const TABLE = {
   height: 700,
 };
 
+// The "Leaderboard" link under the score. Drawn AND clicked from these same
+// numbers, so the picture and the clickable spot always line up.
+const LEADERBOARD_LINK = { x: 150, y: 36, width: 100, height: 20 };
+
 const HUD_HEIGHT = 50;  // The info strip under the table (power bar, messages).
 
 // The plunger fills the bottom of the plunger lane, from x1 to x2.

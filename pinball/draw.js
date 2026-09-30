@@ -191,7 +191,7 @@ function drawBumpers() {
   strokeWeight(3);
   for (const bumper of bumpers) {
     if (bumper.flashFrames > 0) fill(255);
-    else fill(120, 40, 160);
+    else fill(0, 0, 128);
     tableCircle(bumper.layout.x, bumper.layout.y, BUMPER_RADIUS * 2);
   }
 }
@@ -237,6 +237,21 @@ function drawScore() {
   // Before winning, show progress toward the goal. After, just the score.
   const goal = game.won ? "  WIN!" : " / " + WIN_SCORE;
   text(Math.floor(game.score) + goal, TABLE.width / 2, 12);
+  drawLeaderboardLink();
+}
+
+// The clickable "Leaderboard" link under the score. Its box comes from
+// LEADERBOARD_LINK, the same numbers the click check uses.
+function drawLeaderboardLink() {
+  const box = LEADERBOARD_LINK;
+  fill(0, 240, 255);
+  textSize(13);
+  textAlign(CENTER, CENTER);
+  text("Leaderboard", box.x + box.width / 2, box.y + box.height / 2);
+  stroke(0, 240, 255);
+  strokeWeight(1);
+  line(box.x + 12, box.y + box.height - 2, box.x + box.width - 12, box.y + box.height - 2);  // underline
+  noStroke();
 }
 
 // A pop-up message in the middle of the table, like "Ball lost!"
@@ -327,7 +342,7 @@ function drawHUD() {
 
 // Each flipper as a thick line with round ends, from pivot to tip.
 function drawFlippers() {
-  stroke(255, 43, 214);
+  stroke(255, 220, 0);
   strokeWeight(FLIPPER_THICKNESS);
   strokeCap(ROUND);
   for (const flipper of flippers) {
