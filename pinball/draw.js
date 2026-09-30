@@ -47,16 +47,24 @@ function tableRect(x, y, width, height) {
 // ---------- Drawing the game ----------
 
 function drawGame() {
-  drawTable();
-  drawTubes();
-  drawWalls();
-  drawPlunger();
-  drawBumpers();
-  drawSpinners();
-  drawTarget();
-  drawFlippers();
+  // The table itself: the 3D camera (draw3d.js) or the 2D one (below).
+  if (RENDERER === "3D") {
+    background(5, 0, 10);
+    draw3D();
+  } else {
+    drawTable();
+    drawTubes();
+    drawWalls();
+    drawPlunger();
+    drawBumpers();
+    drawSpinners();
+    drawTarget();
+    drawFlippers();
+    if (!game.over) drawBall();
+  }
+
+  // These stay flat on top, like a screen stuck to the glass.
   drawScore();
-  if (!game.over) drawBall();
   drawMessage();
   drawHUD();
   if (game.showingWin) drawWin();

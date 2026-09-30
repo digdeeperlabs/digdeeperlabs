@@ -35,7 +35,9 @@ const UP_SHOT_POINTS = 500;    // Points for shooting the ball back up to the to
 const MIN_HIT_SPEED = 1;       // A hit slower than this doesn't score, so a resting ball can't farm points.
 const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hit. The target can't score again until it stops.
 const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
-const CAMERA_DEPTH = 1;  // ANGLED view: how much smaller the far end looks. 0 = no angle.
+const RENDERER = "3D";     // "3D" = real 3D table (Three.js). "2D" = the flat or angled drawing, the safe backup.
+const CAMERA_3D = { height: 700, back: 300, lookAhead: -80, fov: 55 };  // 3D camera: how high, how far behind the near end, where it looks, zoom.
+const CAMERA_DEPTH = 1; // ANGLED view: how much smaller the far end looks. 0 = no angle.
 const CAMERA_TILT = 1.2;   // ANGLED view: how tall the table looks on screen. Smaller = flatter angle.
 const VIEW = "ANGLED";     // "FLAT" = straight down from above. "ANGLED" = seen from a diagonal, like a real machine.
 
