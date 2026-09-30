@@ -103,6 +103,14 @@ Keep all art and names original.
 - **Leaderboard:** shared, stored in a Google Sheet the parent owns (Apps Script web app, URL in `leaderboard.js`, script copy in `leaderboard-script.gs`). Top 15, 3 letters A to Z, winners only (2,500+). The sheet checks every entry itself (never trust the player's computer). If the sheet can't be reached, the game says "Leaderboard offline" and keeps working. To remove an entry, delete its row in the sheet. If the script changes, the parent must redeploy a new version.
 - **Home page** links to the game.
 
+### Session 3 (final day before sharing)
+
+- Colors: yellow flippers (Emmet typed it), navy bumpers with the yellowish outline.
+- "Leaderboard" link under the score opens `leaderboard.html` in a new tab. The link's box is in `LEADERBOARD_LINK` in `table.js`, used by both the drawing and the click check.
+- **3D is live and the default** (`RENDERER_DEFAULT = "3D"`, camera in `draw3d.js`, Three.js 0.149 in `lib/`). Physics did not change. If a laptop can't do 3D (no WebGL, or 3D fails while drawing), the game switches to 2D by itself. Tested on Emmet's school laptop.
+- To force 2D for testing, set `RENDERER_DEFAULT = "2D"`. Adding `?3d` to the address always asks for 3D.
+- The `3d-try` branch was merged into `main`. It can be deleted.
+
 ### What works (tested)
 
 - Physics: ball, gravity, walls, substeps (no tunneling), speed cap, flippers, plunger with power bar and weak launch rule.

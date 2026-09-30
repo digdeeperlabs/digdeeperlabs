@@ -35,7 +35,7 @@ const UP_SHOT_POINTS = 500;    // Points for shooting the ball back up to the to
 const MIN_HIT_SPEED = 1;       // A hit slower than this doesn't score, so a resting ball can't farm points.
 const HIT_FLASH_FRAMES = 15;   // How long a bumper or target flashes after a hit. The target can't score again until it stops.
 const POINTS_PER_SECOND = 10;   // Points for every second the ball stays in play.
-const RENDERER_DEFAULT = "2D";  // What everyone sees. "3D" = real 3D table (Three.js). "2D" = the flat or angled drawing, the safe backup.
+const RENDERER_DEFAULT = "3D"; // What everyone sees. "3D" = real 3D table (Three.js). "2D" = the flat or angled drawing, the safe backup.
 
 // Secret test address: add ?3d to the end of the page address to try 3D,
 // whatever the default is. Either way, if this laptop can't do 3D, use 2D.
