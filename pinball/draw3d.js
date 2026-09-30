@@ -116,9 +116,24 @@ function build3D() {
            targetMesh, flipperGroups, plungerMesh, ballMesh };
 }
 
-// Every frame: move the 3D pieces to match the game, take a picture,
-// and paste it onto the p5 canvas (so the score and screens draw on top).
+let failed3D = false;  // if 3D ever breaks, switch to 2D for the rest of the visit
+
+// Every frame: draw the 3D table. Gives back true if it worked, false if
+// 3D is broken on this laptop (then draw.js uses the 2D camera instead).
 function draw3D() {
+  if (failed3D) return false;
+  try {
+    drawWorld3D();
+    return true;
+  } catch (err) {
+    failed3D = true;
+    return false;
+  }
+}
+
+// Move the 3D pieces to match the game, take a picture,
+// and paste it onto the p5 canvas (so the score and screens draw on top).
+function drawWorld3D() {
   if (!world3D) world3D = build3D();
   const w = world3D;
 

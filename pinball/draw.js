@@ -48,10 +48,10 @@ function tableRect(x, y, width, height) {
 
 function drawGame() {
   // The table itself: the 3D camera (draw3d.js) or the 2D one (below).
-  if (RENDERER === "3D") {
-    background(5, 0, 10);
-    draw3D();
-  } else {
+  // If 3D fails, draw3D() says so and we use the 2D camera instead.
+  background(5, 0, 10);
+  const drew3D = RENDERER === "3D" && draw3D();
+  if (!drew3D) {
     drawTable();
     drawTubes();
     drawWalls();
