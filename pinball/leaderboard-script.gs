@@ -52,15 +52,26 @@ function scoreSheet() {
   return SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 }
 
-// The best TOP_COUNT scores, highest first. Only initials and score are
-// sent to the game. The date stays private in the sheet.
+// The best TOP_COUNT players, highest first. Each set of initials shows up
+// only once, with that player's best score. (Every game is still saved in
+// the sheet.) Only initials and score are sent to the game. The date stays
+// private in the sheet.
 function topScores() {
   const rows = scoreSheet().getDataRange().getValues().slice(1);  // skip the header row
-  return rows
-    .filter((row) => /^[A-Z]{3}$/.test(row[0]) && typeof row[1] === "number")
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, TOP_COUNT)
-    .map((row) => ({ initials: row[0], score: row[1] }));
+
+  // Keep each player's best score.
+  const best = {};
+  for (const row of rows) {
+    const initials = row[0];
+    const score = row[1];
+    if (!/^[A-Z]{3}$/.test(initials) || typeof score !== "number") continue;
+    if (!(initials in best) || score > best[initials]) best[initials] = score;
+  }
+
+  return Object.keys(best)
+    .map((initials) => ({ initials: initials, score: best[initials] }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, TOP_COUNT);
 }
 
 function sendJson(value) {
