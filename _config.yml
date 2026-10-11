@@ -1,0 +1,7 @@
+# Website settings (GitHub Pages).
+# Files listed under "exclude" stay in the GitHub repository,
+# but they are NOT put on digdeeperlabs.com.
+exclude:
+  - CLAUDE.md        # the coach handbook in the top folder
+  - "*/CLAUDE.md"    # every game's brief, in any folder
+  - docs             # plans and notes
