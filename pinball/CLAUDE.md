@@ -111,6 +111,14 @@ Keep all art and names original.
 - To force 2D for testing, set `RENDERER_DEFAULT = "2D"`. Adding `?3d` to the address always asks for 3D.
 - The `3d-try` branch was merged into `main`. It can be deleted.
 
+### Site v2, Phase 1 (2026-10-11)
+
+- **New name rule** (see top-level CLAUDE.md): first name + optional last initial, up to **MAX_NAME_LENGTH = 12** (in `table.js` and in the sheet script; keep them the same). Letters as typed, one space. The sheet checks the format and a parent-owned "Blocked words" tab. Live as script Version 3.
+- **Phase 1B code is written but NOT tested in the browser yet:**
+  - typing a name with Shift for capitals and Space for one space, plus a blinking cursor;
+  - when the sheet says no, ENTER goes back to fix the name.
+- Next time: test 1B (win a game, try "Emmet G", then try "MAX POWERS" to see the "said no" screen), then sync. Then Phase 2A in `docs/2026-10-11-site-v2-plan.md`.
+
 ### What works (tested)
 
 - Physics: ball, gravity, walls, substeps (no tunneling), speed cap, flippers, plunger with power bar and weak launch rule.

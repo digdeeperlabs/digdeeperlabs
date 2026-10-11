@@ -20,6 +20,7 @@ const WIN_SCORE = 2500;        // Reach this score in one game to win and see th
 const MAX_BALLS = 5;            // Help mode: each lost game adds 1 starting ball, up to this many.
 const BALL_SAVE_SECONDS = 3;    // A new ball that drains this fast comes back free (once per ball).
 const MESSAGE_SECONDS = 2;      // How long pop-up messages stay on screen.
+const MAX_NAME_LENGTH = 12;     // Longest leaderboard name. Keep the same as MAX_NAME_LENGTH in the sheet script.
 const OUTLANE_WIDTH = 27;       // How wide the side lanes are. Narrower = harder to fall in. Keep it above 25 (the ball is 24 wide) or the ball gets stuck on top.
 const BUMPER_RADIUS = 18;      // How big the bumpers are.
 const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.

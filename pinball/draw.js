@@ -95,7 +95,11 @@ function drawLeaderboard() {
   } else if (leaderboard.status === "rejected") {
     fill(255, 60, 60);
     text("The leaderboard said no:", TABLE.width / 2, 300);
-    text(leaderboard.message, TABLE.width / 2, 330);
+    textSize(14);
+    text(leaderboard.message, 20, 315, TABLE.width - 40, 40);  // wraps inside this box
+    fill(255);
+    textSize(16);
+    text("Press ENTER to fix your name", TABLE.width / 2, 370);
   } else if (leaderboard.scores.length === 0) {
     fill(255);
     text("No scores yet. Be the first!", TABLE.width / 2, 300);
@@ -106,7 +110,9 @@ function drawLeaderboard() {
   fill(255);
   textAlign(CENTER, CENTER);
   textSize(14);
-  text("Press ENTER to play again", TABLE.width / 2, TABLE.height + 10);
+  if (leaderboard.status !== "rejected") {
+    text("Press ENTER to play again", TABLE.width / 2, TABLE.height + 10);
+  }
 }
 
 // One row per score: rank, initials, score.
@@ -116,7 +122,8 @@ function drawLeaderboardRows() {
   leaderboard.scores.forEach((entry, i) => {
     const y = 115 + i * rowHeight;
     // Highlight your new score (just the first match, in case of a tie).
-    const isYours = !highlighted && entry.initials === game.savedAs &&
+    const isYours = !highlighted &&
+                    entry.initials.toLowerCase() === game.savedAs.toLowerCase() &&
                     entry.score === Math.floor(game.score);
     if (isYours) highlighted = true;
     fill(isYours ? color(255, 255, 0) : color(255));
@@ -143,20 +150,18 @@ function drawEnterInitials() {
   textSize(20);
   text("Score: " + Math.floor(game.score), TABLE.width / 2, 245);
   textSize(16);
-  text("Type your initials", TABLE.width / 2, 300);
+  text("Type your first name + last initial", TABLE.width / 2, 300);
 
-  // 3 slots: a typed letter, or _ for an empty slot.
-  textSize(48);
+  // The name typed so far, with a blinking cursor (on for half a second, off for half).
+  const cursor = frameCount % 60 < 30 ? "_" : " ";
+  textSize(32);
   fill(255, 255, 0);
-  for (let slot = 0; slot < 3; slot++) {
-    const letter = game.initials[slot] || "_";
-    text(letter, TABLE.width / 2 + (slot - 1) * 50, 370);
-  }
+  text(game.initials + cursor, TABLE.width / 2, 370);
 
   fill(255);
   textSize(14);
-  text("BACKSPACE to fix", TABLE.width / 2, 440);
-  text(game.initials.length === 3 ? "Press ENTER to save" : "", TABLE.width / 2, 465);
+  text("Up to " + MAX_NAME_LENGTH + " letters. BACKSPACE to fix", TABLE.width / 2, 440);
+  text(game.initials.trim().length > 0 ? "Press ENTER to save" : "", TABLE.width / 2, 465);
 }
 
 // "Clue #1" and the clue, wrapped to fit. Used by the win and Game Over screens.

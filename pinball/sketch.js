@@ -17,7 +17,8 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Enter") pressEnter();
   if (event.code === "Backspace") eraseInitial();
   if (event.code === "KeyL") pressLeaderboardKey();
-  if (/^Key[A-Z]$/.test(event.code)) typeInitial(event.code.slice(3));  // "KeyA" -> "A"
+  if (/^[a-zA-Z]$/.test(event.key)) typeInitial(event.key);  // event.key knows Shift: "e" or "E"
+  if (event.code === "Space") typeSpace();
 });
 window.addEventListener("keyup", (event) => { keysDown[event.code] = false; });
 // If the window loses focus, let go of every key so nothing gets stuck.

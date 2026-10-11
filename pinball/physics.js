@@ -149,7 +149,10 @@ function startNewGame() {
 // One press of Enter does one thing, depending on which screen is up.
 function pressEnter() {
   if (game.enteringInitials) {
-    if (game.initials.length === 3) submitInitials();
+    if (game.initials.trim().length > 0) submitInitials();
+  } else if (game.showingLeaderboard && leaderboard.status === "rejected") {
+    game.showingLeaderboard = false;  // the sheet said no: go back and fix the name
+    game.enteringInitials = true;
   } else if (game.showingLeaderboard) {
     startNewGame();
   } else if (game.showingWin) {
@@ -159,9 +162,16 @@ function pressEnter() {
   }
 }
 
-// Typing initials: up to 3 letters. Backspace takes the last one off.
+// Typing a name: letters as typed (Shift for capitals), up to MAX_NAME_LENGTH.
+// Backspace takes the last one off.
 function typeInitial(letter) {
-  if (game.enteringInitials && game.initials.length < 3) game.initials += letter;
+  if (game.enteringInitials && game.initials.length < MAX_NAME_LENGTH) game.initials += letter;
+}
+
+// One space only, and only after a letter: "Emmet G".
+function typeSpace() {
+  const name = game.initials;
+  if (name.length > 0 && !name.includes(" ")) typeInitial(" ");
 }
 
 function eraseInitial() {
@@ -171,6 +181,7 @@ function eraseInitial() {
 // Save to the leaderboard, then show it.
 function submitInitials() {
   game.enteringInitials = false;
+  game.initials = game.initials.trim();  // no space hanging off the end
   game.savedAs = game.initials;
   saveScore(game.initials, Math.floor(game.score));
   game.showingLeaderboard = true;
