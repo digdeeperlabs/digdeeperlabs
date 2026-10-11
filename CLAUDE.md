@@ -73,7 +73,7 @@ This folder is published on GitHub, so anyone can read every file and every comm
 
 - Never put real names (other than "Emmet"), addresses, schools, photos, dates of events, or other personal details in any file or commit message.
 - No brand names, trademarked characters, or copied art in game titles or graphics. Make original versions.
-- Do not collect personal information from players. Any leaderboard uses initials or gamer tags only.
+- Do not collect personal information from players. Leaderboard names are a first name plus a last initial, or a first name only, 12 characters max. No last names, and no other personal details. Names are trimmed of extra spaces and checked against a basic bad-word list. The parent can delete any entry directly in the Google Sheet.
 - Do not add outside services, accounts, analytics, ads, or sign-ups without the parent's approval.
 - Ask before installing anything or running commands outside this folder.
 
