@@ -114,10 +114,11 @@ Keep all art and names original.
 ### Site v2, Phase 1 (2026-10-11)
 
 - **New name rule** (see top-level CLAUDE.md): first name + optional last initial, up to **MAX_NAME_LENGTH = 12** (in `table.js` and in the sheet script; keep them the same). Letters as typed, one space. The sheet checks the format and a parent-owned "Blocked words" tab. Live as script Version 3.
-- **Phase 1B code is written but NOT tested in the browser yet:**
+- **Phase 1B is live and tested on digdeeperlabs.com:**
   - typing a name with Shift for capitals and Space for one space, plus a blinking cursor;
   - when the sheet says no, ENTER goes back to fix the name.
-- Next time: test 1B (win a game, try "Emmet G", then try "MAX POWERS" to see the "said no" screen), then sync. Then Phase 2A in `docs/2026-10-11-site-v2-plan.md`.
+- Tip: if the live site shows an old version after syncing, open it in an Incognito window (GitHub lets browsers keep old copies for up to 10 minutes).
+- Next time: if it wasn't checked, try a rejected name ("MAX POWERS") once on the live game. Then start Phase 2A in `docs/2026-10-11-site-v2-plan.md`.
 
 ### What works (tested)
 
