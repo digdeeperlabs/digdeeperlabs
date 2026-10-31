@@ -100,7 +100,7 @@ Keep all art and names original.
 - **Scoring now:** 10/second alive, target 150, tube 250, up shot 500, spinner hit 50. Light both dead-end tubes = extra ball (then they reset). Tubes stay lit between balls, reset each game.
 - **Spinners:** Up Arrow, half turn out and back, **SPINNER_COOLDOWN = 0.25**.
 - **View:** angled, **CAMERA_DEPTH = 1**, **CAMERA_TILT = 1.2**.
-- **Leaderboard:** shared, stored in a Google Sheet the parent owns (Apps Script web app, URL in `leaderboard.js`, script copy in `leaderboard-script.gs`). Top 15, 3 letters A to Z, winners only (2,500+). The sheet checks every entry itself (never trust the player's computer). If the sheet can't be reached, the game says "Leaderboard offline" and keeps working. To remove an entry, delete its row in the sheet. If the script changes, the parent must redeploy a new version.
+- **Leaderboard:** shared, stored in a Google Sheet the parent owns (Apps Script web app, URL in `leaderboard.js`, script copy now in `shared/leaderboard-script.gs`, used by every game since Site v2 Phase 2B; pinball's scores are in the sheet's `pinball` tab). Top 15, winners only (2,500+); name rule in the top-level CLAUDE.md. The sheet checks every entry itself (never trust the player's computer). If the sheet can't be reached, the game says "Leaderboard offline" and keeps working. To remove an entry, delete its row in the sheet. If the script changes, the parent must redeploy a new version.
 - **Home page** links to the game.
 
 ### Session 3 (final day before sharing)
