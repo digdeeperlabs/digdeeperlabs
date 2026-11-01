@@ -49,11 +49,28 @@
         4px 4px 0 #00f0ff;
     }
 
-    p {
+    /* "Click here for games": a button that looks like blinking terminal text */
+    #menuButton {
+      font: inherit;
       font-size: clamp(0.8rem, 2.5vw, 1.2rem);
       color: #39ff14;
       text-shadow: 0 0 8px #39ff14;
+      background: none;
+      border: none;
+      cursor: pointer;
       animation: blink 1.2s steps(2, start) infinite;
+    }
+
+    /* The game menu, hidden until the button is clicked */
+    #gameMenu {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    #gameMenu[hidden] {
+      display: none;
     }
 
     .game {
@@ -78,13 +95,34 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      p { animation: none; }
+      #menuButton { animation: none; }
     }
   </style>
 </head>
 <body>
   <h1>Dig Deeper<br>Labs</h1>
-  <p>&gt; Click here for games_</p>
-  <a class="game" href="pinball/">&#9654; PINBALL</a>
+  <button id="menuButton" aria-expanded="false" aria-controls="gameMenu">&gt; Click here for games_</button>
+  <nav id="gameMenu" hidden></nav>
+
+  <script src="shared/games.js"></script>
+  <script>
+    // Build one link per game from the list in shared/games.js.
+    const menu = document.getElementById("gameMenu");
+    for (const game of GAMES) {
+      const link = document.createElement("a");
+      link.className = "game";
+      link.href = game.id + "/";
+      link.textContent = "▶ " + game.name.toUpperCase();
+      link.title = game.blurb;
+      menu.appendChild(link);
+    }
+
+    // Clicking the button opens the menu. Clicking again closes it.
+    const button = document.getElementById("menuButton");
+    button.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      button.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+  </script>
 </body>
 </html>
