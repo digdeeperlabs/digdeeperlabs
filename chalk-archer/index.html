@@ -84,9 +84,12 @@
 <div class="screen" id="over">
   <h1 id="overTitle">Erased</h1>
   <p class="stats" id="overStats"></p>
+  <div id="saveSlot"></div>
   <button class="big" id="againBtn">Draw again</button>
 </div>
 
+<link rel="stylesheet" href="../shared/arcade.css">
+<script src="../shared/leaderboard.js"></script>
 <script>
 (() => {
 "use strict";
@@ -116,6 +119,9 @@ const PLAYER_START = {
 };
 
 const BOSS_EVERY = 5;  // every 5th room is a boss room
+
+// This game's name on the leaderboard. Must match the folder name.
+const GAME_ID = "chalk-archer";
 
 // ============================================================
 // canvas + layout
@@ -148,6 +154,7 @@ const TAU = Math.PI*2;
 // ============================================================
 const keys = Object.create(null);
 addEventListener('keydown', e=>{
+  if(e.target.tagName === 'INPUT') return; // typing a name, not playing
   keys[e.key.toLowerCase()] = true;
   if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) e.preventDefault();
   if(e.key === ' ') tryDash();
@@ -432,6 +439,7 @@ function gameOver(){
   document.getElementById('overStats').innerHTML =
     `You made it to <b style="color:var(--chalk)">room ${room}</b> · ${score} points`;
   document.getElementById('overTitle').textContent = room > 10 ? 'Smudged' : 'Erased';
+  showSaveBox(GAME_ID, score, document.getElementById('saveSlot'));
   show('over');
 }
 
@@ -854,6 +862,7 @@ function hide(id){ document.getElementById(id).classList.remove('on'); }
 
 function startGame(){
   hide('title'); hide('over');
+  document.getElementById('saveSlot').replaceChildren(); // clear last run's save box
   room = 1; score = 0; time = 0;
   resize(); resetPlayer(); buildRoom();
   state = 'play'; syncHud();
