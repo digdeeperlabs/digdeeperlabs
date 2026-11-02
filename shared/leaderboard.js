@@ -126,7 +126,6 @@ function makeNameForm(gameId, score, box, message) {
   const input = document.createElement("input");
   input.type = "text";
   input.maxLength = leaderboard.rules.maxNameLength;  // the sheet's rule, not a copy
-  input.placeholder = "Emmet G";
   input.autocomplete = "off";
   input.spellcheck = false;
   const button = document.createElement("button");
