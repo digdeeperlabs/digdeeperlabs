@@ -58,7 +58,7 @@
       background: none;
       border: none;
       cursor: pointer;
-      animation: blink 1.2s steps(2, start) infinite;
+      animation: blink 1.2s steps(1, end) infinite;
     }
 
     /* The game menu, hidden until the button is clicked */
@@ -90,8 +90,10 @@
       text-shadow: none;
     }
 
+    /* Blink with opacity, not visibility: a see-through button can still be
+       clicked, but a "visibility: hidden" one can't. */
     @keyframes blink {
-      to { visibility: hidden; }
+      50% { opacity: 0; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -101,7 +103,7 @@
 </head>
 <body>
   <h1>Dig Deeper<br>Labs</h1>
-  <button id="menuButton" aria-expanded="false" aria-controls="gameMenu">&gt; Click here for games_</button>
+  <button id="menuButton" aria-expanded="false" aria-controls="gameMenu"></button>
   <nav id="gameMenu" hidden></nav>
 
   <script src="shared/games.js"></script>
@@ -117,10 +119,15 @@
       menu.appendChild(link);
     }
 
-    // Clicking the button opens the menu. Clicking again closes it.
+    // Clicking the button opens the menu. Clicking again closes it,
+    // and the button's words change to match.
+    const OPEN_TEXT = "> Click here for games_";
+    const CLOSE_TEXT = "> Click here to return to the homepage_";
     const button = document.getElementById("menuButton");
+    button.textContent = OPEN_TEXT;
     button.addEventListener("click", () => {
       menu.hidden = !menu.hidden;
+      button.textContent = menu.hidden ? OPEN_TEXT : CLOSE_TEXT;
       button.setAttribute("aria-expanded", String(!menu.hidden));
     });
   </script>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboards | Dig Deeper Labs</title>
+  <link rel="stylesheet" href="../shared/arcade.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      gap: 2rem;
+      background: radial-gradient(ellipse at center, #1a0033 0%, #05000a 70%);
+      color: #fff;
+      font-family: monospace;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #ff2bd6;
+      text-shadow: 0 0 6px #ff2bd6, 0 0 20px #ff2bd6;
+    }
+    h2 { font-size: 1.5rem; color: #00f0ff; margin-bottom: 0.3rem; }
+    .label { color: #39ff14; margin-bottom: 0.8rem; }
+    .board { display: flex; flex-direction: column; align-items: center; }
+    .score-table { font-size: 1.2rem; }
+    .status { font-size: 1.1rem; }
+    nav { display: flex; gap: 1.5rem; }
+    a { color: #00f0ff; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>LEADERBOARDS</h1>
+  <p class="status" id="status">Loading...</p>
+  <div id="boards"></div>
+  <nav id="links"></nav>
+
+  <script src="../shared/games.js"></script>
+  <script src="../shared/leaderboard.js"></script>
+  <script>
+    // ?game=chalk-archer in the address shows just that game. No ?game shows them all.
+    const asked = new URLSearchParams(location.search).get("game");
+    const oneGame = GAMES.find((game) => game.id === asked);
+    const shownGames = oneGame ? [oneGame] : GAMES;
+
+    // Links at the bottom: back to the game (if there is one), all boards, home.
+    const links = document.getElementById("links");
+    function addLink(text, href) {
+      const link = document.createElement("a");
+      link.textContent = text;
+      link.href = href;
+      links.appendChild(link);
+    }
+    if (oneGame) {
+      addLink("Play " + oneGame.name, "../" + oneGame.id + "/");
+      addLink("All leaderboards", "./");
+    }
+    addLink("Home", "../");
+
+    // One section per game: its name, what the number means, and its top scores.
+    function showBoard(game, scores) {
+      const board = document.createElement("section");
+      board.className = "board";
+      const title = document.createElement("h2");
+      title.textContent = game.name;
+      const label = document.createElement("p");
+      label.className = "label";
+      label.textContent = "Ranked by " + game.scoreLabel;
+      board.append(title, label, makeScoreTable(scores, ""));
+      document.getElementById("boards").appendChild(board);
+    }
+
+    // One game: ask for that game. All games: ask for all of them in one trip.
+    const request = oneGame ? loadLeaderboard(oneGame.id) : loadAllLeaderboards();
+    request.then(() => {
+      const status = document.getElementById("status");
+      if (leaderboard.status === "offline") {
+        status.textContent = "Leaderboard offline. Try again later!";
+      } else if (leaderboard.status === "rejected") {
+        status.textContent = "Leaderboard problem: " + leaderboard.message;
+      } else {
+        status.textContent = "";
+        for (const game of shownGames) {
+          const scores = oneGame ? leaderboard.scores : (leaderboard.allGames[game.id] || []);
+          showBoard(game, scores);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

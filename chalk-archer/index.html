@@ -31,6 +31,9 @@
     letter-spacing:.4px;text-shadow:0 1px 2px #000}
   #score{font-family:var(--hand);font-size:19px;color:var(--gold);white-space:nowrap}
 
+  /* leaderboard links (the top bar ignores clicks, so the link turns them back on) */
+  .lbLink{font-family:var(--hand);font-size:18px;color:var(--cyan);white-space:nowrap;pointer-events:auto}
+
   /* overlays */
   .screen{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;
     gap:22px;padding:28px;background:rgba(14,23,21,.92);backdrop-filter:blur(3px)}
@@ -67,6 +70,7 @@
   <div id="room">Room 1</div>
   <div id="hpwrap"><div id="hpfill"></div><div id="hptext">100 / 100</div></div>
   <div id="score">0</div>
+  <a class="lbLink" target="_blank">Leaderboard</a>
 </div>
 
 <div class="screen on" id="title">
@@ -74,6 +78,7 @@
   <p class="lede">Move to dodge, <b>stop to fire</b>. Your bow draws itself the moment you hold still. Clear every room, take an upgrade, go again.</p>
   <button class="big" id="startBtn">Start drawing</button>
   <p class="stats" id="ctrlHelp"></p>
+  <a class="lbLink" target="_blank">Leaderboard</a>
 </div>
 
 <div class="screen" id="pick">
@@ -869,6 +874,8 @@ function startGame(){
 }
 document.getElementById('startBtn').onclick = startGame;
 document.getElementById('againBtn').onclick = startGame;
+// Every "Leaderboard" link opens this game's board in a new tab.
+for(const link of document.querySelectorAll('.lbLink')) link.href = leaderboardPageUrl(GAME_ID);
 document.getElementById('ctrlHelp').innerHTML = TOUCH
   ? 'Drag anywhere to move · double-tap to dash'
   : 'WASD or arrow keys to move · space to dash';

@@ -22,7 +22,14 @@ const LEADERBOARD_WAIT_SECONDS = 8;  // Give up and say "offline" after this lon
 //   scores: the top scores, like [{ name: "Emmet G", score: 120 }, ...]
 //   message: why the sheet said no
 //   rules: { topCount, maxNameLength, minScore }, straight from the sheet
-const leaderboard = { status: "loading", scores: [], message: "", rules: null };
+//   allGames: every game's top scores, like { "chalk-archer": [...], ... }
+const leaderboard = { status: "loading", scores: [], message: "", rules: null, allGames: {} };
+
+// The address of a game's leaderboard page. Every game's folder sits
+// next to the leaderboards folder, so "../" gets there from any game.
+function leaderboardPageUrl(gameId) {
+  return "../leaderboards/?game=" + encodeURIComponent(gameId);
+}
 
 // Ask the sheet for a game's top scores and its rules.
 function loadLeaderboard(gameId) {
@@ -35,6 +42,14 @@ function loadLeaderboard(gameId) {
       maxNameLength: answer.maxNameLength,
       minScore: answer.minScore,
     };
+  });
+}
+
+// Ask the sheet for EVERY game's top scores, in one trip.
+function loadAllLeaderboards() {
+  leaderboard.status = "loading";
+  return askSheet(fetchWithTimeout(LEADERBOARD_URL + "?game=all"), (answer) => {
+    leaderboard.allGames = answer.games;
   });
 }
 
