@@ -51,6 +51,21 @@ Plain canvas, no libraries. The game was already built this way and runs well, s
 
 ## Status and next steps
 
-- Step 1 (game on the site, new scoring): in progress.
-- Step 2: shared leaderboard and the name box.
-- Step 3: home page link.
+**Done (2026-11-01). Live at digdeeperlabs.com/chalk-archer.**
+
+What works:
+- Emmet's scoring (kills only, points table above). Bombers that blow up on you score 0.
+- `TUNING` section at the top: **POINTS**, **PLAYER_START** (one source of truth for starting stats), **BOSS_EVERY**, **GAME_ID**.
+- Game over shows the shared save box (`shared/leaderboard.js`). The name limit and minimum score come from the sheet. The first score is on the board.
+- The Space key works in the name box (the game ignores keys while you type).
+- A "Leaderboard" link on the title screen and in the top bar opens `leaderboards/?game=chalk-archer` in a new tab.
+- It's in the home page's game menu (`shared/games.js`).
+
+Broken / not done:
+- The Mission above still needs rewriting in Emmet's own words.
+- The blurb in `shared/games.js` says "Win a game to get on the leaderboard", but Chalk Archer has no win. Reword it.
+- No "How to play" box yet beyond the title screen text. Emmet rewrites that text in his own words.
+
+Next time:
+- Reword the Mission and the blurb.
+- Then the next game in the Part 3 order: Cube Corner.
