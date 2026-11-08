@@ -25,7 +25,8 @@ const OUTLANE_WIDTH = 27;       // How wide the side lanes are. Narrower = harde
 const BUMPER_RADIUS = 18;      // How big the bumpers are.
 const BUMPER_KICK = 6;          // Extra speed a bumper adds on top of a perfect bounce.
 const TARGET_SPEED = 1;         // How fast the moving target slides (pixels per frame).
-const TUBE_POINTS = 250;        // Points for getting the ball to the back of a dead-end tube. Light both = extra ball.
+const TUBE_POINTS = 250;        // Points for getting the ball to the back of a dead-end tube.
+const TRIPS_PER_EXTRA_BALL = 2; // Every 2 trips into any tube (same one twice counts) = 1 extra ball. No limit.
 const TARGET_POINTS = 150;     // Points for hitting the moving target.
 const SPINNER_ARM = 28;         // How long each spinner arm is, from the hub to the tip.
 const SPINNER_THICKNESS = 6;    // How fat the spinner arms are.

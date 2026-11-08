@@ -79,8 +79,9 @@ function bounceOffSpinner(spinner) {
 // Each dead-end tube's backpack: is it lit, and has the ball already scored
 // on this trip in? (So one trip = one score, even if the ball rattles around.)
 const tubes = DEAD_END_TUBES.map((layout) => ({ layout: layout, lit: false, scoredThisTrip: false }));
+let tubeTrips = 0;  // trips into any tube since the last extra ball
 
-// Did the ball reach the back of a tube? Score, light it, and check for both lit.
+// Did the ball reach the back of a tube? Score, light it, and count the trip.
 function checkTubes() {
   for (const tube of tubes) {
     const t = tube.layout;
@@ -90,17 +91,20 @@ function checkTubes() {
     if (atBack && !tube.scoredThisTrip) {
       tube.scoredThisTrip = true;
       tube.lit = true;
+      tubeTrips += 1;
       game.score += TUBE_POINTS;
       showMessage("Tube! +" + TUBE_POINTS);
     }
     if (!insideTube) tube.scoredThisTrip = false;  // left the tube: next trip can score
   }
 
-  // Both lit: extra ball! Then they turn off so you can do it again.
-  if (tubes.every((tube) => tube.lit)) {
+  // Every TRIPS_PER_EXTRA_BALL trips (same tube twice counts): extra ball!
+  // Then the lights go off and counting starts again. No limit.
+  if (tubeTrips >= TRIPS_PER_EXTRA_BALL) {
     game.ballsLeft += 1;
-    showMessage("Both tubes: EXTRA BALL!");
+    showMessage("EXTRA BALL!");
     for (const tube of tubes) tube.lit = false;
+    tubeTrips = 0;
   }
 }
 
@@ -143,6 +147,7 @@ function startNewGame() {
   game.savedAs = "";
   game.showingLeaderboard = false;
   for (const tube of tubes) tube.lit = false;  // (lit tubes stay lit between balls, not between games)
+  tubeTrips = 0;
   newBall();
 }
 
