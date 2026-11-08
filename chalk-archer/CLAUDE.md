@@ -23,6 +23,7 @@ Plain canvas, no libraries. The game was already built this way and runs well, s
 
 - **Lose:** your health hits 0. There's no win. The goal is to go as deep as you can.
 - **A boss room every 5 rooms** (**BOSS_EVERY**). Enemies get tougher every room.
+- **Late game (added 2026-11-08):** upgrades multiply, but enemy health only grew by adding, so a stacked player got too strong around the 30s. Now, after **GROWTH_STARTS_ROOM = 37**, every enemy's health (bosses too) is also multiplied by **HP_GROWTH = 1.05** for each extra room. Emmet picked 1.05 because enemies grow every room, but upgrades are random. Both use `lateHealthBoost()`. Idea for later: bosses hit harder.
 - **Score = kills only.** Points per kill:
 
   | Enemy | Points | Why |
