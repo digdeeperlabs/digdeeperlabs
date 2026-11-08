@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cube Corner | Dig Deeper Labs</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem;
+      background: radial-gradient(ellipse at center, #1a0033 0%, #05000a 70%);
+      color: #fff;
+      font-family: monospace;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #ff2bd6;
+      text-shadow: 0 0 6px #ff2bd6, 0 0 20px #ff2bd6;
+    }
+    #game canvas { display: block; box-shadow: 0 0 16px #00f0ff; }
+    .help { color: #39ff14; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>CUBE CORNER</h1>
+  <div id="game"></div>
+  <p class="help">&larr; &rarr; move &middot; &uarr; rotate &middot; hold &darr; to drop fast</p>
+
+  <script src="lib/p5.min.js"></script>
+  <script>
+// ============================================================
+// TUNING: the dials. Change these to make the game easier or harder.
+// ============================================================
+const COLS = 10;                  // board width, in cubes
+const ROWS = 20;                  // board height, in cubes
+const CELL = 24;                  // size of one cube, in pixels (the whole board grows or shrinks with it)
+const HUD_HEIGHT = 44;            // the score bar under the board
+
+const START_DROP_SECONDS = 0.5;   // level 1: wait this long before a shape falls one row
+const FAST_DROP_SECONDS = 0.04;   // the wait while you hold Down
+const ROWS_PER_LEVEL = 10;        // clear this many rows to go up a level
+const SPEEDUP = 0.85;             // each level's wait = last level's wait x this
+
+const ROW_POINTS = 100;           // points = (rows cleared at once)^2 x ROW_POINTS
+const FIZZ_SECONDS = 0.25;        // how long full rows flash before they vanish
+const FIZZ_COLOR = "#39ff14";     // the flash color (neon green)
+
+// Every shape: its cubes (1 = cube, 0 = empty) and its neon color.
+const SHAPES = [
+  { cells: [[1, 1, 1, 1]],         color: "#00f0ff" },  // long bar
+  { cells: [[1, 1, 1], [0, 1, 0]], color: "#c04bff" },  // T
+  { cells: [[1, 1, 1], [1, 0, 0]], color: "#ff9a1f" },  // L
+  { cells: [[1, 1], [1, 1]],       color: "#ffff33" },  // square
+  { cells: [[1, 1, 0], [0, 1, 1]], color: "#ff2b4f" },  // Z
+];
+
+// ============================================================
+// GAME STATE: what's going on. (Drawing is further down.)
+// ============================================================
+const game = {
+  state: "playing",   // "playing", "clearing" (rows flashing), or "over"
+  grid: [],           // ROWS x COLS. Each spot is a color, or null if empty.
+  piece: null,        // the falling shape: { cells, color, x, y }
+  score: 0,
+  rowsCleared: 0,
+  level: 1,
+  dropTimer: 0,       // seconds since the shape last fell
+  fizzTimer: 0,       // seconds left on the flash
+  fullRows: [],       // which rows are flashing
+};
+
+function newGame() {
+  game.grid = [];
+  for (let r = 0; r < ROWS; r++) game.grid.push(emptyRow());
+  game.score = 0;
+  game.rowsCleared = 0;
+  game.level = 1;
+  game.dropTimer = 0;
+  game.state = "playing";
+  spawnPiece();
+}
+
+function emptyRow() {
+  return new Array(COLS).fill(null);
+}
+
+// A random shape appears at the top middle. No room? Game over.
+function spawnPiece() {
+  const shape = random(SHAPES);
+  const width = shape.cells[0].length;
+  game.piece = {
+    cells: shape.cells,
+    color: shape.color,
+    x: Math.floor(COLS / 2) - Math.floor(width / 2),
+    y: 0,
+  };
+  if (hits(game.piece.cells, game.piece.x, game.piece.y)) {
+    game.state = "over";
+  } else {
+    game.state = "playing";
+  }
+}
+
+// Would these cubes, at this spot, hit a wall, the floor, or a stacked cube?
+function hits(cells, x, y) {
+  for (let r = 0; r < cells.length; r++) {
+    for (let c = 0; c < cells[r].length; c++) {
+      if (cells[r][c] !== 1) continue;
+      const col = x + c;
+      const row = y + r;
+      if (col < 0 || col >= COLS || row >= ROWS) return true;
+      if (row >= 0 && game.grid[row][col] !== null) return true;
+    }
+  }
+  return false;
+}
+
+// Move the falling shape if there's room. Returns true if it moved.
+function tryMove(dx, dy) {
+  const p = game.piece;
+  if (hits(p.cells, p.x + dx, p.y + dy)) return false;
+  p.x += dx;
+  p.y += dy;
+  return true;
+}
+
+// Turn the shape a quarter turn clockwise, if there's room.
+// Column c of the old shape becomes row c of the new one, read bottom to top.
+function tryRotate() {
+  const old = game.piece.cells;
+  const turned = [];
+  for (let c = 0; c < old[0].length; c++) {
+    turned[c] = [];
+    for (let r = old.length - 1; r >= 0; r--) turned[c].push(old[r][c]);
+  }
+  if (!hits(turned, game.piece.x, game.piece.y)) game.piece.cells = turned;
+}
+
+// How long to wait before the next fall. Each level multiplies the wait by SPEEDUP.
+function dropSeconds() {
+  const levelWait = START_DROP_SECONDS * Math.pow(SPEEDUP, game.level - 1);
+  if (keyIsDown(DOWN_ARROW)) return Math.min(levelWait, FAST_DROP_SECONDS);
+  return levelWait;
+}
+
+// The shape landed: stamp its cubes into the grid, then look for full rows.
+function lockPiece() {
+  const p = game.piece;
+  for (let r = 0; r < p.cells.length; r++) {
+    for (let c = 0; c < p.cells[r].length; c++) {
+      if (p.cells[r][c] === 1) game.grid[p.y + r][p.x + c] = p.color;
+    }
+  }
+  game.piece = null;
+
+  game.fullRows = [];
+  game.grid.forEach((row, r) => {
+    if (row.every((spot) => spot !== null)) game.fullRows.push(r);
+  });
+
+  if (game.fullRows.length > 0) {
+    const n = game.fullRows.length;
+    game.score += n * n * ROW_POINTS;
+    game.rowsCleared += n;
+    game.level = 1 + Math.floor(game.rowsCleared / ROWS_PER_LEVEL);
+    game.fizzTimer = FIZZ_SECONDS;
+    game.state = "clearing";   // flash first, remove after
+  } else {
+    spawnPiece();
+  }
+}
+
+// The flash is over: take out the full rows and add empty ones on top.
+function removeFullRows() {
+  game.grid = game.grid.filter((row, r) => !game.fullRows.includes(r));
+  while (game.grid.length < ROWS) game.grid.unshift(emptyRow());
+  game.fullRows = [];
+}
+
+// UPDATE: dt = seconds since the last frame. Using real seconds (not frames)
+// keeps the speed the same on every computer.
+function update(dt) {
+  if (game.state === "playing") {
+    game.dropTimer += dt;
+    if (game.dropTimer >= dropSeconds()) {
+      game.dropTimer = 0;
+      if (!tryMove(0, 1)) lockPiece();
+    }
+  } else if (game.state === "clearing") {
+    game.fizzTimer -= dt;
+    if (game.fizzTimer <= 0) {
+      removeFullRows();
+      spawnPiece();
+    }
+  }
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+function keyPressed() {
+  if (game.state === "over") {
+    if (keyCode === ENTER) newGame();
+    return;
+  }
+  if (game.state === "playing") {
+    if (keyCode === LEFT_ARROW) tryMove(-1, 0);
+    else if (keyCode === RIGHT_ARROW) tryMove(1, 0);
+    else if (keyCode === UP_ARROW) tryRotate();
+    else if (keyCode === DOWN_ARROW && tryMove(0, 1)) game.dropTimer = 0;
+  }
+  // Arrow keys would scroll the page. Returning false stops that.
+  if ([LEFT_ARROW, RIGHT_ARROW, UP_ARROW, DOWN_ARROW].includes(keyCode)) return false;
+}
+
+// ============================================================
+// DRAWING: how it looks. Reads the game state, never changes it.
+// ============================================================
+function setup() {
+  const canvas = createCanvas(COLS * CELL, ROWS * CELL + HUD_HEIGHT);
+  canvas.parent("game");
+  newGame();
+}
+
+// The game loop: Input -> Update -> Draw -> Repeat.
+// deltaTime is in milliseconds. Cap it so a hidden tab doesn't jump ahead.
+function draw() {
+  update(Math.min(deltaTime / 1000, 0.1));
+  background(5, 0, 10);
+  drawGridLines();
+  drawStack();
+  drawPiece();
+  drawHud();
+  if (game.state === "over") drawGameOver();
+}
+
+function drawGridLines() {
+  stroke(40, 20, 60);
+  strokeWeight(1);
+  for (let x = 0; x <= COLS * CELL; x += CELL) line(x, 0, x, ROWS * CELL);
+  for (let y = 0; y <= ROWS * CELL; y += CELL) line(0, y, COLS * CELL, y);
+}
+
+// One glowing cube.
+function drawCube(col, row, color) {
+  drawingContext.shadowBlur = 12;
+  drawingContext.shadowColor = color;
+  noStroke();
+  fill(color);
+  rect(col * CELL + 2, row * CELL + 2, CELL - 4, CELL - 4, 4);
+  drawingContext.shadowBlur = 0;
+}
+
+// The landed cubes. Full rows flash FIZZ_COLOR while clearing.
+function drawStack() {
+  for (let r = 0; r < ROWS; r++) {
+    const fizzing = game.fullRows.includes(r);
+    for (let c = 0; c < COLS; c++) {
+      if (game.grid[r][c] !== null) drawCube(c, r, fizzing ? FIZZ_COLOR : game.grid[r][c]);
+    }
+  }
+}
+
+function drawPiece() {
+  const p = game.piece;
+  if (!p) return;
+  for (let r = 0; r < p.cells.length; r++) {
+    for (let c = 0; c < p.cells[r].length; c++) {
+      if (p.cells[r][c] === 1) drawCube(p.x + c, p.y + r, p.color);
+    }
+  }
+}
+
+// Score and level, in the bar under the board.
+function drawHud() {
+  noStroke();
+  fill(20, 0, 35);
+  rect(0, ROWS * CELL, COLS * CELL, HUD_HEIGHT);
+  textFont("monospace");
+  textSize(16);
+  textAlign(LEFT, CENTER);
+  fill("#ffff33");
+  text("SCORE " + game.score, 12, ROWS * CELL + HUD_HEIGHT / 2);
+  textAlign(RIGHT, CENTER);
+  fill("#00f0ff");
+  text("LEVEL " + game.level, COLS * CELL - 12, ROWS * CELL + HUD_HEIGHT / 2);
+}
+
+// Every position is measured from the board's middle, so it still
+// lines up if CELL changes.
+function drawGameOver() {
+  const midX = COLS * CELL / 2;
+  const midY = ROWS * CELL / 2;
+  noStroke();
+  fill(0, 0, 0, 200);
+  rect(0, 0, COLS * CELL, ROWS * CELL);
+  textFont("monospace");
+  textAlign(CENTER, CENTER);
+  fill("#ff2bd6");
+  textSize(34);
+  text("GAME OVER", midX, midY - 70);
+  fill(255);
+  textSize(18);
+  text("Score: " + game.score, midX, midY - 15);
+  text("Level: " + game.level, midX, midY + 15);
+  fill("#39ff14");
+  textSize(14);
+  text("Press ENTER to play again", midX, midY + 70);
+}
+  </script>
+</body>
+</html>

@@ -125,6 +125,11 @@ const PLAYER_START = {
 
 const BOSS_EVERY = 5;  // every 5th room is a boss room
 
+// Late game: after GROWTH_STARTS_ROOM, every enemy's health is multiplied
+// by HP_GROWTH for each extra room. Rooms before that play like normal.
+const HP_GROWTH = 1.05;
+const GROWTH_STARTS_ROOM = 37;
+
 // This game's name on the leaderboard. Must match the folder name.
 const GAME_ID = "chalk-archer";
 
@@ -279,6 +284,12 @@ function rollType(){
   return pick(pool);
 }
 
+// The late-game health boost for this room: 1 until GROWTH_STARTS_ROOM,
+// then x HP_GROWTH for every room after it (room 40 = 1.05^10, about 1.6).
+function lateHealthBoost(){
+  return Math.pow(HP_GROWTH, Math.max(0, room - GROWTH_STARTS_ROOM));
+}
+
 function spawn(type, idx=0, total=1){
   let x,y,g=0;
   do{
@@ -292,7 +303,7 @@ function spawn(type, idx=0, total=1){
     x,y,type,spawnT:.65,flash:0,slowT:0,burnT:0,burnDmg:0,shootCd:rand(.8,1.8),
     kx:0,ky:0,walk:Math.random()*10,face:1,ang:0,phase:0
   };
-  const M = 1 + t*0.16;           // hp scale
+  const M = (1 + t*0.16) * lateHealthBoost();  // hp scale (+ late-game boost)
   const D = 1 + t*0.10;           // damage scale
   if(type==='chaser')  Object.assign(base,{r:13,hp:26*M,speed:rand(88,110),touch:9*D});
   if(type==='shooter') Object.assign(base,{r:13,hp:22*M,speed:66,touch:7*D,shot:7*D});
@@ -301,7 +312,7 @@ function spawn(type, idx=0, total=1){
   if(type==='boss'){
     const spread = 76;
     const bx = clamp(A.x + A.w/2 + (idx - (total-1)/2) * spread, A.x+50, A.x+A.w-50);
-    Object.assign(base,{r:30,hp:(340+t*46),speed:62,touch:18*D,shot:10*D,ang:0,x:bx,y:A.y+90});
+    Object.assign(base,{r:30,hp:(340+t*46)*lateHealthBoost(),speed:62,touch:18*D,shot:10*D,ang:0,x:bx,y:A.y+90});
   }
   base.maxHp = base.hp;
   enemies.push(base);
