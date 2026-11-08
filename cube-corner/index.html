@@ -23,16 +23,34 @@
       color: #ff2bd6;
       text-shadow: 0 0 6px #ff2bd6, 0 0 20px #ff2bd6;
     }
+    #game { position: relative; }
     #game canvas { display: block; box-shadow: 0 0 16px #00f0ff; }
     .help { color: #39ff14; font-size: 1rem; }
+    .help a { color: #00f0ff; }
+
+    /* The save box sits on top of the board at game over. Its top and
+       height are set by the script, from SAVE_BOX_TOP. */
+    #saveSlot {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 0 8px;
+    }
+    #saveSlot .save-box input { width: 130px; }  /* the board is narrow */
   </style>
+  <link rel="stylesheet" href="../shared/arcade.css">
 </head>
 <body>
   <h1>CUBE CORNER</h1>
-  <div id="game"></div>
-  <p class="help">&larr; &rarr; move &middot; &uarr; rotate &middot; hold &darr; to drop fast</p>
+  <div id="game"><div id="saveSlot"></div></div>
+  <p class="help">&larr; &rarr; move &middot; &uarr; rotate &middot; hold &darr; to drop fast &middot;
+    <a id="lbLink" target="_blank">Leaderboard</a></p>
 
   <script src="lib/p5.min.js"></script>
+  <script src="../shared/leaderboard.js"></script>
   <script>
 // ============================================================
 // TUNING: the dials. Change these to make the game easier or harder.
@@ -50,6 +68,10 @@ const SPEEDUP = 0.85;             // each level's wait = last level's wait x thi
 const ROW_POINTS = 100;           // points = (rows cleared at once)^2 x ROW_POINTS
 const FIZZ_SECONDS = 0.25;        // how long full rows flash before they vanish
 const FIZZ_COLOR = "#39ff14";     // the flash color (neon green)
+
+const GAME_ID = "cube-corner";    // this game on the leaderboard. Must match the folder name.
+const SAVE_BOX_TOP = 200;         // game over: the name box starts this far down the board.
+                                  // The GAME OVER text sits above this line.
 
 // Every shape: its cubes (1 = cube, 0 = empty) and its neon color.
 const SHAPES = [
@@ -83,7 +105,14 @@ function newGame() {
   game.level = 1;
   game.dropTimer = 0;
   game.state = "playing";
+  document.getElementById("saveSlot").replaceChildren();  // clear last game's save box
   spawnPiece();
+}
+
+// No room for a new shape: the game ends, and the save box appears.
+function gameOver() {
+  game.state = "over";
+  showSaveBox(GAME_ID, game.score, document.getElementById("saveSlot"));
 }
 
 function emptyRow() {
@@ -101,7 +130,7 @@ function spawnPiece() {
     y: 0,
   };
   if (hits(game.piece.cells, game.piece.x, game.piece.y)) {
-    game.state = "over";
+    gameOver();
   } else {
     game.state = "playing";
   }
@@ -204,7 +233,14 @@ function update(dt) {
 // ============================================================
 // INPUT
 // ============================================================
+// Typing a name in the save box? Then the keys are for the box, not the game.
+// (Without this, pressing Enter to save would also start a new game.)
+function typingName() {
+  return document.activeElement && document.activeElement.tagName === "INPUT";
+}
+
 function keyPressed() {
+  if (typingName()) return;
   if (game.state === "over") {
     if (keyCode === ENTER) newGame();
     return;
@@ -225,6 +261,13 @@ function keyPressed() {
 function setup() {
   const canvas = createCanvas(COLS * CELL, ROWS * CELL + HUD_HEIGHT);
   canvas.parent("game");
+
+  // The save box covers the board from SAVE_BOX_TOP down to the score bar.
+  const slot = document.getElementById("saveSlot");
+  slot.style.top = SAVE_BOX_TOP + "px";
+  slot.style.height = (ROWS * CELL - SAVE_BOX_TOP) + "px";
+
+  document.getElementById("lbLink").href = leaderboardPageUrl(GAME_ID);
   newGame();
 }
 
@@ -292,11 +335,11 @@ function drawHud() {
   text("LEVEL " + game.level, COLS * CELL - 12, ROWS * CELL + HUD_HEIGHT / 2);
 }
 
-// Every position is measured from the board's middle, so it still
-// lines up if CELL changes.
+// The text is measured up from SAVE_BOX_TOP, so it always sits above the
+// save box, never on top of it.
 function drawGameOver() {
   const midX = COLS * CELL / 2;
-  const midY = ROWS * CELL / 2;
+  const line = SAVE_BOX_TOP;
   noStroke();
   fill(0, 0, 0, 200);
   rect(0, 0, COLS * CELL, ROWS * CELL);
@@ -304,14 +347,14 @@ function drawGameOver() {
   textAlign(CENTER, CENTER);
   fill("#ff2bd6");
   textSize(34);
-  text("GAME OVER", midX, midY - 70);
+  text("GAME OVER", midX, line - 140);
   fill(255);
   textSize(18);
-  text("Score: " + game.score, midX, midY - 15);
-  text("Level: " + game.level, midX, midY + 15);
+  text("Score: " + game.score, midX, line - 90);
+  text("Level: " + game.level, midX, line - 65);
   fill("#39ff14");
   textSize(14);
-  text("Press ENTER to play again", midX, midY + 70);
+  text("Press ENTER to play again", midX, line - 30);
 }
   </script>
 </body>
