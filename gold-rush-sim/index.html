@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gold Rush Sim</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --gold:#ffc83a; --wood:#3a2616; --wood2:#5a3b22; --paper:#f1e3c0; --ink:#2a1a0c; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#0b0f18; font-family: Georgia, 'Times New Roman', serif; color:#fff; user-select:none; }
+  canvas#game { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .hidden { display:none !important; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; top:0; left:0; right:0; padding:10px 14px; display:flex; gap:14px; align-items:flex-start; pointer-events:none; text-shadow:0 1px 3px #000; }
+  .panel { background:rgba(20,12,6,.62); border:1px solid rgba(255,200,58,.35); border-radius:10px; padding:8px 12px; backdrop-filter: blur(4px); }
+  .bars { width:260px; }
+  .bar { height:16px; background:rgba(0,0,0,.55); border-radius:8px; overflow:hidden; margin:3px 0 7px; position:relative; }
+  .bar > i { display:block; height:100%; border-radius:8px; transition:width .15s; }
+  .bar > span { position:absolute; inset:0; font:bold 11px/16px Arial, sans-serif; text-align:center; }
+  #foodFill { background:linear-gradient(90deg,#d9482b,#ff9a3a); }
+  #energyFill { background:linear-gradient(90deg,#2b8fd9,#5fe0ff); }
+  #xpFill { background:linear-gradient(90deg,#8a4fff,#ff6bd6); }
+  .lbl { font:bold 11px Arial, sans-serif; letter-spacing:.08em; opacity:.85; text-transform:uppercase; }
+  .big { font-size:24px; font-weight:bold; color:var(--gold); }
+  .mid { flex:1; text-align:center; }
+  #zoneName { font-size:22px; font-weight:bold; letter-spacing:.04em; }
+  #dayInfo { font:13px Arial, sans-serif; opacity:.9; margin-top:2px; }
+  .right { text-align:right; min-width:230px; }
+  .right div { font:bold 14px Arial, sans-serif; margin:2px 0; }
+  .low { animation: pulse .6s infinite alternate; }
+  @keyframes pulse { from { box-shadow:0 0 0 rgba(255,60,40,0);} to { box-shadow:0 0 18px rgba(255,60,40,.95);} }
+
+  #prompt { position:fixed; bottom:92px; left:50%; transform:translateX(-50%); font:bold 18px Arial, sans-serif; padding:10px 18px; }
+  #prompt b { color:var(--gold); }
+  #panWrap { position:fixed; bottom:54px; left:50%; transform:translateX(-50%); width:320px; height:18px; background:rgba(0,0,0,.6); border:1px solid var(--gold); border-radius:9px; overflow:hidden; }
+  #panFill { height:100%; width:0; background:linear-gradient(90deg,#c98a1a,#ffe27a); }
+  #toasts { position:fixed; left:50%; top:30%; transform:translateX(-50%); display:flex; flex-direction:column-reverse; align-items:center; gap:6px; pointer-events:none; }
+  .toast { font:bold 20px Arial, sans-serif; padding:6px 16px; border-radius:20px; background:rgba(10,6,3,.7); text-shadow:0 1px 3px #000; animation: rise 2.2s forwards; white-space:nowrap; }
+  .toast.rare { font-size:26px; border:1px solid var(--gold); }
+  @keyframes rise { 0%{opacity:0; transform:translateY(16px) scale(.8);} 12%{opacity:1; transform:none;} 75%{opacity:1;} 100%{opacity:0; transform:translateY(-30px);} }
+  #help { position:fixed; left:12px; bottom:10px; font:12px Arial, sans-serif; opacity:.8; text-shadow:0 1px 2px #000; }
+  #fade { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity .35s; }
+  #vignette { position:fixed; inset:0; pointer-events:none; box-shadow: inset 0 0 180px rgba(0,0,0,.55); }
+  #hungry { position:fixed; inset:0; pointer-events:none; box-shadow: inset 0 0 160px rgba(200,20,10,.0); transition: box-shadow .4s; }
+
+  /* ---------- overlays ---------- */
+  #overlay, #title { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(6,4,2,.55); }
+  #title { background:linear-gradient(180deg, rgba(8,6,3,.35), rgba(8,6,3,.8)); }
+  .card { background: linear-gradient(180deg,#f6e9c8,#e6d3a3); color:var(--ink); border:6px solid var(--wood); outline:2px solid var(--gold); border-radius:12px; padding:22px 26px; width:min(860px,92vw); max-height:88vh; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,.6); user-select:none; }
+  .card h1 { margin:0 0 4px; font-size:54px; letter-spacing:.05em; color:#7a4a0c; text-shadow:0 2px 0 #fff3c4; text-align:center; }
+  .card h2 { margin:0 0 10px; font-size:30px; color:#6a3d0a; border-bottom:2px solid var(--wood2); padding-bottom:6px; display:flex; justify-content:space-between; align-items:baseline; }
+  .card h2 small { font:bold 15px Arial, sans-serif; color:#2a1a0c; }
+  .card p { font:15px/1.45 Arial, sans-serif; margin:6px 0; }
+  button { font:bold 15px Arial, sans-serif; background:linear-gradient(180deg,#8a5a1c,#5a3710); color:#ffe9b0; border:2px solid #2e1c08; border-radius:8px; padding:8px 14px; cursor:pointer; }
+  button:hover:not(:disabled) { filter:brightness(1.2); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.go { font-size:20px; padding:12px 26px; background:linear-gradient(180deg,#e0a52a,#a06a10); color:#2a1a0c; }
+  .row { display:flex; align-items:center; gap:10px; padding:7px 4px; border-bottom:1px dashed rgba(60,35,10,.35); font:15px Arial, sans-serif; }
+  .row .grow { flex:1; }
+  .dot { width:18px; height:18px; border-radius:50%; border:2px solid rgba(0,0,0,.45); box-shadow: inset -3px -3px 5px rgba(0,0,0,.35), inset 2px 2px 4px rgba(255,255,255,.6); flex:none; }
+  .foot { display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:10px; }
+  .grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .zone { text-align:left; font:12px Arial, sans-serif; padding:7px 8px; min-height:58px; }
+  .zone b { display:block; font-size:13px; margin-bottom:2px; }
+  .zone.here { outline:3px solid #1f9e4a; }
+  .codex { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .cx { display:flex; align-items:center; gap:6px; font:12px Arial, sans-serif; background:rgba(90,59,34,.12); border-radius:6px; padding:5px 6px; }
+  .cx.unk { opacity:.45; }
+  input#tag { font:bold 22px Arial, sans-serif; padding:8px 12px; width:240px; border:2px solid var(--wood); border-radius:8px; text-align:center; text-transform:uppercase; background:#fffbe9; }
+  .cols { display:flex; gap:26px; margin-top:12px; }
+  .cols > div { flex:1; }
+  table.lb { width:100%; border-collapse:collapse; font:14px Arial, sans-serif; }
+  table.lb td, table.lb th { padding:4px 6px; border-bottom:1px dashed rgba(60,35,10,.35); text-align:left; }
+  table.lb tr.me td { background:rgba(255,200,58,.45); font-weight:bold; }
+  kbd { background:#2a1a0c; color:#ffe9b0; border-radius:4px; padding:1px 7px; font:bold 13px Arial, sans-serif; }
+  .center { text-align:center; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="hungry"></div>
+
+<div id="hud" class="hidden">
+  <div class="panel bars">
+    <div class="lbl">Food</div>
+    <div class="bar" id="foodBar"><i id="foodFill"></i><span id="foodTxt"></span></div>
+    <div class="lbl">Energy</div>
+    <div class="bar" id="energyBar"><i id="energyFill"></i><span id="energyTxt"></span></div>
+    <div class="lbl" id="lvlLbl">Level 1</div>
+    <div class="bar"><i id="xpFill"></i><span id="xpTxt"></span></div>
+  </div>
+  <div class="mid">
+    <div id="zoneName"></div>
+    <div id="dayInfo"></div>
+  </div>
+  <div class="panel right">
+    <div class="big" id="money">$0</div>
+    <div id="scoreTxt"></div>
+    <div id="bagTxt"></div>
+    <div id="rationTxt"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<div id="prompt" class="panel hidden"></div>
+<div id="panWrap" class="hidden"><div id="panFill"></div></div>
+<div id="help" class="hidden">W A S D / arrows: move &nbsp;|&nbsp; SPACE: pan in the river &nbsp;|&nbsp; E: use &nbsp;|&nbsp; F: eat a ration &nbsp;|&nbsp; C: collection &nbsp;|&nbsp; G: graphics &nbsp;|&nbsp; M: sound</div>
+
+<div id="overlay" class="hidden"><div class="card" id="card"></div></div>
+<div id="title"><div class="card" id="titleCard"></div></div>
+<div id="fade"></div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
