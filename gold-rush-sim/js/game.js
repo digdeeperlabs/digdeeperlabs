@@ -459,12 +459,23 @@ function eat() {
   if (S.food > 99 && S.energy > 99) { toast('Already full.'); return; }
   S.rations--; S.food = Math.min(100, S.food + T.RATION_FOOD); S.energy = Math.min(100, S.energy + T.RATION_ENERGY); sfx.eat(); toast('Ate a ration. +' + T.RATION_FOOD + ' food, +' + T.RATION_ENERGY + ' energy');
 }
+// Pick which zone's loot table this find comes from.
+// Your current zone has weight 1. Each zone further back is OLD_ZONE_FALLOFF times as likely as the one after it.
+// Example with 0.5 in zone 3: zone 3 = 1, zone 2 = 0.5, zone 1 = 0.25.
+function pickFindZone() {
+  let total = 0, w = 1;
+  for (let z = S.zone; z >= 1; z--) { total += w; w *= T.OLD_ZONE_FALLOFF; }
+  let roll = Math.random() * total;
+  w = 1;
+  for (let z = S.zone; z >= 1; z--) { roll -= w; if (roll < 0) return z; w *= T.OLD_ZONE_FALLOFF; }
+  return 1;
+}
 function finishPan(hot) {
   S.energy = Math.max(0, S.energy - panEnergy());
   if (hot) { hot.left--; if (hot.left <= 0) { placeHotspot(hot); toast('That rich spot is panned out. Look for the next glitter.'); } }
   if (Math.random() < emptyChance()) { toast('<span style="opacity:.7">Just gravel...</span>'); sfx.empty(); return; }
   const rare = Math.random() < rareChance() * (hot ? T.HOTSPOT_BONUS : 1);
-  const idx = (S.zone - 1) * 2 + (rare ? 1 : 0);
+  const idx = (pickFindZone() - 1) * 2 + (rare ? 1 : 0);
   let qty = 1, jackpot = false;
   if (Math.random() < T.JACKPOT_CHANCE + 0.004 * S.up.luck) { qty = 5; jackpot = true; } else if (Math.random() < 0.1 + 0.03 * S.up.luck) qty = 2;
   qty = Math.min(qty, bagCap() - bagCount());
