@@ -24,6 +24,7 @@ export const TUNING = {
   JACKPOT_CHANCE: 0.02,    // chance of a x5 jackpot
   HOTSPOT_BONUS: 1.6,      // rare chance multiplier when panning in a glittering spot
   HOTSPOT_PANS: 6,         // pans before a glittering spot moves
+  OLD_ZONE_FALLOFF: 0.5,   // each older zone gets half the tickets
 
   // --- value and XP curves ---
   ITEM_VALUE_BASE: 2,   ITEM_VALUE_GROWTH: 1.13,  // item N sells for BASE * GROWTH^N
