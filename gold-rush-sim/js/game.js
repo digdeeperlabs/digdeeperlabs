@@ -21,7 +21,8 @@ const fmt = (n) => {
 // ============================================================
 //  GAME STATE (the brain). Nothing in here knows about drawing.
 // ============================================================
-const SAVE_KEY = 'goldrush_save_v1', LB_KEY = 'goldrush_scores_v1', NAME_KEY = 'goldrush_name';
+const SAVE_KEY = 'goldrush_save_v1', NAME_KEY = 'goldrush_name';
+const GAME_ID = 'gold-rush-sim';   // this game on the shared leaderboard. Must match the folder name.
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked: play without saving */ } },
@@ -551,26 +552,19 @@ function travel(z) {
   }, 380);
 }
 
-// ---------- leaderboard ----------
-function boardHtml(meEntry) {
-  const lb = store.get(LB_KEY) || [];
-  if (!lb.length) return '<p>No runs yet. Be the first name on the board.</p>';
-  return '<table class="lb"><tr><th>#</th><th>Miner</th><th>XP</th><th>Lvl</th><th>Zone</th><th>Days</th></tr>' + lb.map((e, i) => `<tr class="${meEntry && e.id === meEntry.id ? 'me' : ''}"><td>${i + 1}</td><td>${e.name}</td><td>${fmt(e.xp)}</td><td>${e.level}</td><td>${e.zone}</td><td>${e.day}</td></tr>`).join('') + '</table>';
-}
-// Sends the score to the shared sheet if LEADERBOARD_URL is set in data.js. Otherwise does nothing.
-async function submitScoreRemote(entry) {
-  if (!T.LEADERBOARD_URL) return;
-  try { await fetch(T.LEADERBOARD_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ game: 'gold-rush-sim', name: entry.name, xp: entry.xp, level: entry.level, zone: entry.zone, day: entry.day }) }); } catch (e) { /* offline: local score is still saved */ }
-}
+// ---------- game over ----------
+// The leaderboard itself lives in ../shared/leaderboard.js (showSaveBox, leaderboardPageUrl).
+// The score is total XP as a whole number, because the sheet only accepts whole numbers.
 function die() {
-  mode = 'dead'; sfx.dead();
-  const L = levelInfo(S.xp), entry = { id: Date.now(), name: S.name, xp: Math.floor(S.xp), level: L.lvl, zone: Math.max(S.zone, maxZone(L.lvl)), day: dayNow() };
-  const lb = store.get(LB_KEY) || []; lb.push(entry); lb.sort((a, b) => b.xp - a.xp); store.set(LB_KEY, lb.slice(0, 10)); store.del(SAVE_KEY);
-  submitScoreRemote(entry);
+  mode = 'dead'; sfx.dead(); store.del(SAVE_KEY);
+  const score = Math.floor(S.xp), level = levelInfo(S.xp).lvl, day = dayNow();
   $('prompt').classList.add('hidden'); $('panWrap').classList.add('hidden');
-  $('card').innerHTML = `<h1>You Starved</h1><p class="center" style="font-size:18px"><b>${S.name}</b> lasted <b>${entry.day} days</b>, reached <b>level ${entry.level}</b>, and discovered <b>${S.found.length} of ${ITEMS.length}</b> finds.</p>
-    <p class="center" style="font-size:30px;color:#7a4a0c"><b>Final score: ${fmt(entry.xp)} XP</b></p><h2>Top Miners <small>on this laptop</small></h2>${boardHtml(entry)}<div class="foot"><span></span><button class="go" data-act="again">Play again</button></div>`;
+  $('card').innerHTML = `<h1>You Starved</h1><p class="center" style="font-size:18px"><b>${S.name}</b> lasted <b>${day} days</b>, reached <b>level ${level}</b>, and discovered <b>${S.found.length} of ${ITEMS.length}</b> finds.</p>
+    <p class="center" style="font-size:30px;color:#7a4a0c"><b>Final score: ${fmt(score)} XP</b></p>
+    <h2>Leaderboard</h2><div id="saveSlot"></div>
+    <div class="foot"><a href="${leaderboardPageUrl(GAME_ID)}" target="_blank">See the full leaderboard</a><button class="go" data-act="again">Play again</button></div>`;
   $('overlay').classList.remove('hidden');
+  showSaveBox(GAME_ID, score, $('saveSlot'));
 }
 
 // ---------- title screen ----------
@@ -583,7 +577,8 @@ function showTitle() {
       <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: walk and turn</p><p><kbd>SPACE</kbd> hold in the river to pan. Glittering spots are richer.</p>
       <p><kbd>E</kbd> use a shop or the Trail Map</p><p><kbd>F</kbd> eat a ration (food and energy)</p><p><kbd>C</kbd> collection &nbsp; <kbd>G</kbd> graphics &nbsp; <kbd>M</kbd> sound</p>
       <p>Food prices rise every day. Your score is your total XP when you starve.</p></div>
-      <div><h2>Top Miners <small>on this laptop</small></h2>${boardHtml()}</div></div>`;
+      <div><h2>Leaderboard</h2><p>Starve with the most XP to top the board.</p>
+      <p><a href="${leaderboardPageUrl(GAME_ID)}" target="_blank">See the top miners</a></p></div></div>`;
   const begin = (state) => {
     S = state; store.set(NAME_KEY, S.name); initAudio();
     buildZone(); player.position.set(S.x, 0, S.z); heading = camYaw = S.h; lastDay = dayNow();
@@ -600,7 +595,9 @@ function showTitle() {
 // ============================================================
 const keys = {};
 window.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') { if (e.code === 'Enter') $('btnNew').click(); return; }
+  // Typing in a box: let the letters through, don't move the miner.
+  // Enter in the gamer tag box starts a run. (The leaderboard name box handles its own Enter.)
+  if (e.target.tagName === 'INPUT') { if (e.code === 'Enter' && e.target.id === 'tag') $('btnNew').click(); return; }
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.repeat) return; keys[e.code] = true;
   if (e.code === 'KeyM') { muted = !muted; toast(muted ? 'Sound off' : 'Sound on'); }

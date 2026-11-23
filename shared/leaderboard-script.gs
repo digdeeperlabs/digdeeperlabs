@@ -35,6 +35,7 @@ const GAMES = {
   "space-escape":  { minScore: 1,    maxScore: 1000000000 },
   "donut-empire":  { minScore: 1,    maxScore: 1000000000 },
   "chalk-archer":  { minScore: 1,    maxScore: 1000000000 },
+  "gold-rush-sim": { minScore: 1,    maxScore: 1000000000 },
 };
 
 // ---------- What the website can ask for ----------

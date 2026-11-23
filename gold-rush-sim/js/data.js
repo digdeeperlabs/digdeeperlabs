@@ -35,11 +35,6 @@ export const TUNING = {
   // --- player ---
   WALK_SPEED: 10,
   TURN_SPEED: 2.6,
-
-  // --- leaderboard ---
-  // Paste the Apps Script web app URL here to also send scores to the shared sheet.
-  // Leave it empty and scores are only saved on this laptop.
-  LEADERBOARD_URL: '',
 };
 
 // ---------------- UPGRADES ----------------

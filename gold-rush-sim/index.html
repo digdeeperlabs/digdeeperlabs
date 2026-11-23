@@ -70,12 +70,11 @@
   input#tag { font:bold 22px Arial, sans-serif; padding:8px 12px; width:240px; border:2px solid var(--wood); border-radius:8px; text-align:center; text-transform:uppercase; background:#fffbe9; }
   .cols { display:flex; gap:26px; margin-top:12px; }
   .cols > div { flex:1; }
-  table.lb { width:100%; border-collapse:collapse; font:14px Arial, sans-serif; }
-  table.lb td, table.lb th { padding:4px 6px; border-bottom:1px dashed rgba(60,35,10,.35); text-align:left; }
-  table.lb tr.me td { background:rgba(255,200,58,.45); font-weight:bold; }
+  #saveSlot { display:flex; justify-content:center; font-family: Arial, sans-serif; }  /* the shared save box, centered */
   kbd { background:#2a1a0c; color:#ffe9b0; border-radius:4px; padding:1px 7px; font:bold 13px Arial, sans-serif; }
   .center { text-align:center; }
 </style>
+<link rel="stylesheet" href="../shared/arcade.css">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -112,6 +111,7 @@
 <div id="title"><div class="card" id="titleCard"></div></div>
 <div id="fade"></div>
 
+<script src="../shared/leaderboard.js"></script>
 <script type="module" src="js/game.js"></script>
 </body>
 </html>
