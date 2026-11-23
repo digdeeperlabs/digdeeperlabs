@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dig Out of Prison | Dig Deeper Labs</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<script src="lib/three.min.js"></script>
+<style>
+:root{--bg:#e9ecf1;--fg:#1d2230;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141a;--fg:#eef1f7}}
+:root[data-theme="dark"]{--bg:#12141a;--fg:#eef1f7}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Fredoka',system-ui,sans-serif;font-weight:500;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;min-height:100vh}
+#wrap{position:relative;width:100%;max-width:960px;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:#87ceeb}
+canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;left:10px;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;pointer-events:none;color:#fff;text-shadow:0 1px 3px #000;font-size:13px}
+#obj{background:rgba(0,0,0,.55);padding:5px 10px;border-radius:8px;align-self:flex-start;font-size:14px;text-shadow:none}
+.bw{display:flex;gap:8px;align-items:center}.bw span{min-width:62px}
+.b{width:130px;height:10px;background:rgba(0,0,0,.5);border-radius:5px;overflow:hidden}.b i{display:block;height:100%;width:0}
+#hud .row{display:flex;gap:14px;flex-wrap:wrap}
+#toast{position:absolute;top:40%;left:0;right:0;text-align:center;font-size:28px;font-weight:700;color:#fff;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .3s;pointer-events:none}
+#ov,#shop{position:absolute;inset:0;background:rgba(10,14,25,.85);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:16px}
+#shop{display:none;background:rgba(10,14,25,.9)}
+#ov h2{font-size:30px;margin:0;color:#ffd23f}#ov p{margin:0;max-width:520px;font-size:15px}
+button{font:inherit;font-weight:700;background:#ffd23f;color:#1d2230;border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+#pad{display:none;gap:8px;align-items:center}
+#pad .g{display:grid;grid-template-columns:repeat(3,48px);gap:4px}#pad button{padding:0;height:48px;touch-action:none;user-select:none}
+@media (pointer:coarse){#pad{display:flex}}
+</style></head><body>
+<div id="wrap">
+ <div id="hud"><div id="obj"></div>
+  <div class="row"><div class="bw"><span>ENERGY</span><div class="b"><i id="en" style="background:#7bd96a"></i></div></div>
+  <div class="bw"><span>TOOL</span><div class="b"><i id="du" style="background:#8fd3ff"></i></div></div>
+  <div class="bw"><span>BLOCK</span><div class="b"><i id="dg" style="background:#f2b134"></i></div></div>
+  <div class="bw"><span>ALERT</span><div class="b"><i id="sus" style="background:#ff4d4d"></i></div></div></div>
+  <div id="dl"></div><div id="iv"></div></div>
+ <div id="toast"></div>
+ <div id="shop"></div>
+ <div id="ov"><h2 id="oh">DIG OUT OF PRISON</h2>
+  <p id="op">Dig down through the floor of your cell, one block at a time, and break into the old sewer <span id="depthText"></span> m below.<br><br>
+  Dirt and stone fill your pack. Visit the other cells and sell it for 🧻 toilet paper, then buy better tools, sharpening and food.<br><br>
+  <b>WASD</b> move · <b>mouse</b> (click game) or <b>← →</b> look · hold <b>E</b> dig · <b>F</b> talk · <b>C</b> rug over the hole · <b>W/S</b> climb in the shaft<br>
+  <b>Normal</b>: daytime is safe, so dig, trade and shop freely.<br><span id="hardText"></span><br>At <b>night</b> the police patrol every cell and the shops close: stay out of the corridor, be in your cell or shaft when they check it, and keep the rug on the hole.</p>
+  <button id="go">PLAY</button><button id="goh" style="background:#ff6b5a">HARD MODE</button></div>
+</div>
+<div id="pad"><div class="g"><span></span><button data-k="w">▲</button><span></span><button data-k="a">◀</button><button data-k="s">▼</button><button data-k="d">▶</button></div>
+ <button data-k="e" style="height:64px">DIG</button><button data-k="f" style="height:64px">TALK</button><button data-k="c" style="height:64px">RUG</button></div>
+<script>
+// ============================================================
+// TUNING: the dials. Change these to make the game easier or harder.
+// ============================================================
+
+// Everything that's different between Normal and Hard lives here, once.
+// The game AND the start screen's Hard-mode sentence both read this table.
+const MODES = {
+  normal: {
+    name: 'Normal',
+    startPaper: 6,      // 🧻 you start with
+    pack: 20,           // blocks your pack holds before you must sell
+    idleDrain: 0.12,    // energy lost per second, just living
+    digDrain: 1.1,      // energy lost per second while digging
+    toolWear: 1,        // how fast tools get dull (x)
+    sellRate: 1,        // Rico pays this much of the price (0.7 = 30% less)
+    nightStarts: 110,   // seconds into each day when night falls
+    policeSpeed: 4.2,   // police walking speed at night
+    alertRate: 1,       // how fast the ALERT bar fills (x)
+  },
+  hard: {
+    name: 'Hard',
+    startPaper: 0,
+    pack: 12,
+    idleDrain: 0.3,
+    digDrain: 2.2,
+    toolWear: 2,
+    sellRate: 0.7,
+    nightStarts: 70,
+    policeSpeed: 5.5,
+    alertRate: 1.5,
+  },
+};
+
+const DEPTH_BLOCKS = 40;      // blocks to dig to reach the sewer (each block is 2 m)
+const DAY_LENGTH = 155;       // seconds in one day + night
+const POLICE_DAY_SPEED = 3;   // the guard's walking speed in daytime
+
+// Tools: name, digging power, color, price in 🧻. One list, used by the shop AND the buying.
+const TL = [['Spoon', 1, 0xd9dde2, 0], ['Shovel', 2.2, 0x9a6b3a, 20], ['Pickaxe', 4, 0x7a7f88, 60], ['Jackhammer', 9, 0xf2b134, 150]];
+const PR = {concrete: 3, dirt: 2, clay: 4, stone: 6, gold: 40};   // what Rico pays per block
+const SHOP = {sharpen: 3, bread: 2, breadEnergy: 30, stew: 6};    // other prices in 🧻
+
+// ============================================================
+// THE GAME
+// ============================================================
+const $=id=>document.getElementById(id),wrap=$('wrap');
+const R=new THREE.WebGLRenderer({antialias:true});wrap.prepend(R.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x87ceeb);scene.fog=new THREE.Fog(0x87ceeb,40,100);
+const cam=new THREE.PerspectiveCamera(70,1.6,.1,200);
+function fit(){const w=wrap.clientWidth,h=wrap.clientHeight;R.setSize(w,h,false);R.setPixelRatio(Math.min(devicePixelRatio,2));cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',fit);fit();
+const hemi=new THREE.HemisphereLight(0xffffff,0x667788,.8);scene.add(hemi);const DC=new THREE.Color(0x87ceeb),NC=new THREE.Color(0x070a18);
+const sun=new THREE.DirectionalLight(0xffffff,.5);sun.position.set(10,25,12);scene.add(sun);
+const M=c=>new THREE.MeshLambertMaterial({color:c});
+function box(w,h,d,c,x,y,z,p){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c));m.position.set(x,y,z);(p||scene).add(m);return m}
+const BLK=2,N=DEPTH_BLOCKS,HX=.5,HZ=-1.5,WC=0x6b7280;
+let mode=MODES.normal;
+
+// The start screen's text, built from the numbers above (so it can't go out of date).
+function hardModeText(){const n=MODES.normal,h=MODES.hard,x=v=>Math.round(v*10)/10;
+ return '<b>Hard mode</b>: energy drains '+x(h.digDrain/n.digDrain)+'× faster, tools wear '+x(h.toolWear/n.toolWear)+'× faster, your pack holds only '+h.pack+', you start with '+h.startPaper+' 🧻, Rico pays '+Math.round((1-h.sellRate)*100)+'% less, and nights come sooner, with faster police.'}
+$('hardText').innerHTML=hardModeText();$('depthText').textContent=N*BLK;
+
+// prison block
+[[24.5,10,-12.75,0],[23.5,10,13.25,0],[2,5.5,.5,2.25],[2,2.5,.5,-3.75]].forEach(([w,d,x,z])=>box(w,.2,d,0x9a9fa8,x,.1,z));
+box(50,.2,6,0x777c85,0,.1,8);box(50,4,.4,WC,0,2,11.2);box(50,4,.4,WC,0,2,-5);
+for(let i=-2;i<=3;i++)box(.4,4,10,WC,i*10-5,2,0);
+for(let c=-2;c<=2;c++){
+ for(let x=-4.5;x<=4.6;x++){if(Math.abs(x)<1.3)continue;box(.14,3.6,.14,0x2b2f38,c*10+x,1.8,5)}
+ box(10,.18,.18,0x2b2f38,c*10,3.6,5);
+ box(2,.5,4,0x5b3c25,c*10-3.5,.4,-2.5);box(1.8,.22,3.8,0xe6e0d0,c*10-3.5,.75,-2.5);box(.9,.9,.9,0xf4f4f4,c*10+3.8,.55,-4.2)}
+const rug=box(2.6,.06,2.6,0xa83232,HX,.23,HZ);rug.visible=false;const mark=box(2,.03,2,0xffd23f,HX,.22,HZ);
+// shaft: the layers you dig through. [ends at block, name, color, hardness, what you get]
+const rings=new THREE.Group();scene.add(rings);
+const LY=[[3,'CONCRETE',0x9a9fa8,1.5,'concrete'],[14,'DIRT',0x7a5236,1,'dirt'],[22,'CLAY',0xb0714a,1.4,'clay'],[36,'STONE',0x6f717a,3,'stone'],[N,'OLD SEWER',0x3d6a55,4,'stone']];
+const ly=k=>LY.find(l=>k<l[0])||LY[LY.length-1];
+const blk=box(2,BLK,2,0xffffff,HX,0,HZ);
+function setBlk(bp){const L=ly(dug);mark.visible=dug===0;blk.visible=dug<N;blk.position.y=-(dug+.5)*BLK+.1;blk.material.color.setHex(L[2]).multiplyScalar(1-.5*(bp||0))}
+function ring(k){const c=ly(k)[2],y=-(k+.5)*BLK;[[.5,3,HX-1.25,HZ],[.5,3,HX+1.25,HZ],[2,.5,HX,HZ-1.25],[2,.5,HX,HZ+1.25]].forEach(([w,d,x,z])=>box(w,BLK,d,c,x,y,z,rings))}
+// people
+function char(body,legs,hat){const g=new THREE.Group();
+ box(1.1,1.3,.6,body,0,1.9,0,g);box(.9,.9,.9,0xffd84a,0,3,0,g);
+ g.la=box(.4,1.2,.4,0xffd84a,-.78,1.9,0,g);g.ra=box(.4,1.2,.4,0xffd84a,.78,1.9,0,g);
+ g.ll=box(.5,1.2,.5,legs,-.28,.6,0,g);g.rl=box(.5,1.2,.5,legs,.28,.6,0,g);
+ box(.1,.1,.02,0x222222,-.2,3.05,.46,g);box(.1,.1,.02,0x222222,.2,3.05,.46,g);
+ if(hat)box(1,.35,1,hat,0,3.55,0,g);scene.add(g);return g}
+function label(s,p){const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.fillStyle='rgba(0,0,0,.6)';x.fillRect(0,0,256,64);x.fillStyle='#fff';x.font='bold 28px sans-serif';x.textAlign='center';x.fillText(s,128,42);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));sp.scale.set(4,1,1);sp.position.set(0,4.6,0);p.add(sp)}
+const NP=[{x:-20,name:'Rico (buyer)',role:'buy',c:0x8a5a2b},{x:-10,name:'Smith (tools)',role:'smith',c:0x555555,h:0x333333},{x:10,name:'Cook (food)',role:'cook',c:0xeeeeee,h:0xffffff},{x:20,name:'Lifer Lou',role:'tip',c:0x6a4a9a}];
+NP.forEach(n=>{const g=char(n.c,0x333333,n.h);g.position.set(n.x,0,-2.5);label(n.name,g)});
+function swing(c,t,m){const s=m?Math.sin(t*12)*.8:0;c.la.rotation.x=s;c.ra.rotation.x=-s;c.ll.rotation.x=-s;c.rl.rotation.x=s}
+const G=char(0x2b4a8a,0x1c2f5a,0x1c2f5a);
+const cone=new THREE.Mesh(new THREE.ConeGeometry(3.2,7,20,1,true),new THREE.MeshBasicMaterial({color:0xfff2a0,transparent:true,opacity:.3,side:2}));cone.rotation.x=Math.PI/2;scene.add(cone);
+// player (invisible body, first person)
+const P=new THREE.Object3D();P.position.set(0,0,0);scene.add(cam);
+cam.add(new THREE.PointLight(0xffe2a8,.9,14));
+const spoonM=new THREE.Group();[[.05,.05,.55,0xd9dde2,0,0,0],[.14,.04,.2,0xd9dde2,0,0,-.38]].forEach(([w,h,d,c,x,y,z])=>box(w,h,d,c,x,y,z,spoonM));spoonM.position.set(.4,-.35,-.8);spoonM.rotation.y=-.2;cam.add(spoonM);
+// state
+let state='ready',keys={},tp=0,inv={concrete:0,dirt:0,clay:0,stone:0,gold:0},en=100,dur=100,tool=0,dug=0,pos=0,bp=0,covered=false,sus=0,t=0,gx=-10,gdir=1,gwait=0,look=false,digging=false,toastT=0,yaw=0,pitch=0,pitchV=0,camY=3.1,cur=0,ct=0,ad=0,clk=0,night=false,wasN=false,dark=0,shopN=null;
+const count=()=>Object.values(inv).reduce((a,b)=>a+b,0);
+const pack=()=>count()>=mode.pack;
+const clock=s=>{s=Math.floor(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};  // 205 -> "3:25"
+function toast(s,ms){const e=$('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>e.style.opacity=0,ms||1600)}
+function setTool(i){tool=i;dur=100;spoonM.scale.setScalar(1+i*.25);spoonM.children.forEach(m=>m.material.color.setHex(TL[i][2]))}
+function start(m){mode=m;$('ov').style.display='none';reset()}
+function reset(){while(rings.children.length)rings.remove(rings.children[0]);tp=mode.startPaper;for(const k in inv)inv[k]=0;en=100;dug=0;pos=0;bp=0;covered=false;rug.visible=false;sus=0;t=0;clk=0;night=false;wasN=false;dark=0;yaw=0;pitch=0;cur=0;camY=3.1;P.position.set(0,0,0);setTool(0);setBlk(0);state='play'}
+function caught(){sus=0;for(const k in inv)inv[k]=0;pos=0;P.position.set(0,0,0);covered=true;rug.visible=true;toast('BUSTED! The guard took your stuff.',2200)}
+function win(){state='won';$('oh').textContent='YOU ESCAPED!';$('op').textContent='You broke into the sewer and crawled out in '+clock(t)+' ('+mode.name+' mode), with 🧻 '+tp+' left over.';$('go').textContent='PLAY AGAIN';$('ov').style.display='flex'}
+function breakBlk(){const L=ly(dug);const it=(Math.random()<.1&&dug>=14)?'gold':L[4];inv[it]++;toast('+1 '+it+(it==='gold'?'!':''),700);ring(dug);dug++;pos=dug;bp=0;setBlk(0);if(dug>=N)win()}
+// shop
+const sellValue=()=>{let v=0;for(const k in inv)v+=Math.round(inv[k]*PR[k]*mode.sellRate);return v};
+function renderShop(){const n=shopN;let h='<h2 style="margin:0;color:#ffd23f">'+n.name+'</h2><div>🧻 '+tp+'</div>';
+ const btn=(id,txt,dis)=>h+='<button '+(dis?'disabled ':'')+'onclick="B(\''+id+'\')">'+txt+'</button>';
+ if(n.role==='buy'){const v=sellValue();h+='<div>'+Object.entries(PR).map(([k,p])=>k+' '+p).join(' · ')+'</div>';btn('sell','Sell everything (+'+v+' 🧻)',!v)}
+ if(n.role==='smith'){btn('sharp','Sharpen your '+TL[tool][0]+' ('+SHOP.sharpen+' 🧻)',dur>=99||tp<SHOP.sharpen);[1,2,3].forEach(i=>btn('t'+i,TL[i][0]+' ('+TL[i][3]+' 🧻)',tool>=i||tp<TL[i][3]))}
+ if(n.role==='cook'){btn('f1','Bread: +'+SHOP.breadEnergy+' energy ('+SHOP.bread+' 🧻)',tp<SHOP.bread||en>=99);btn('f2','Prison stew: full energy ('+SHOP.stew+' 🧻)',tp<SHOP.stew||en>=99)}
+ if(n.role==='tip')h+='<div style="max-width:400px">“Rock chews up a spoon. Get a pickaxe. Keep the rug on that hole unless you’re in it, and stay out of the corridor when he stops at your cell.”</div>';
+ btn('x','Close',false);$('shop').innerHTML=h}
+function B(id){
+ if(id==='x'){closeShop();return}
+ if(id==='sell'){const v=sellValue();for(const k in inv)inv[k]=0;tp+=v;toast('+'+v+' 🧻',900)}
+ else if(id==='sharp'){tp-=SHOP.sharpen;dur=100}
+ else if(id==='f1'){tp-=SHOP.bread;en=Math.min(100,en+SHOP.breadEnergy)}
+ else if(id==='f2'){tp-=SHOP.stew;en=100}
+ else if(id[0]==='t'){const i=+id[1];tp-=TL[i][3];setTool(i)}
+ renderShop()}
+function openShop(n){shopN=n;state='shop';document.exitPointerLock&&document.exitPointerLock();$('shop').style.display='flex';renderShop()}
+function closeShop(){state='play';$('shop').style.display='none'}
+const near=()=>{const p=P.position;return pos===0&&p.z<5.2?NP.find(n=>Math.hypot(p.x-n.x,p.z+2.5)<3.8):null};
+$('go').onclick=()=>start(MODES.normal);$('goh').onclick=()=>start(MODES.hard);
+R.domElement.onclick=()=>{if(state==='play'&&R.domElement.requestPointerLock)R.domElement.requestPointerLock()};
+addEventListener('mousemove',e=>{if(document.pointerLockElement===R.domElement){yaw-=e.movementX*.0025;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.0025))}});
+let lt=null;wrap.addEventListener('touchstart',e=>{lt=e.touches[0]},{passive:true});wrap.addEventListener('touchmove',e=>{if(!lt)return;const q=e.touches[0];yaw-=(q.clientX-lt.clientX)*.006;pitch=Math.max(-1.2,Math.min(1.2,pitch-(q.clientY-lt.clientY)*.006));lt=q},{passive:true});
+function press(k){
+ if(k==='f'){if(state==='shop')closeShop();else if(state==='play'){const n=near();if(n){if(night)toast('Zzz… they’re asleep. Shops open at dawn.',1500);else openShop(n)}}}
+ if(k==='escape'&&state==='shop')closeShop();
+ if(k==='c'&&state==='play'&&(pos>0||Math.hypot(P.position.x-HX,P.position.z-HZ)<3)){covered=!covered;rug.visible=covered;toast(covered?'Rug over the hole':'Hole uncovered',800)}
+ if(k==='enter'&&state==='won'){$('ov').style.display='none';reset()}}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k.startsWith('arrow')||k===' ')e.preventDefault();if(!keys[k])press(k);keys[k]=true});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();if(!keys[k])press(k);keys[k]=true};['pointerup','pointerleave','pointercancel'].forEach(v=>b['on'+v]=()=>keys[k]=false)});
+function tick(dt){
+ t+=dt;
+ if(state==='play'){clk+=dt;night=(clk%DAY_LENGTH)>=mode.nightStarts;if(night!==wasN){wasN=night;toast(night?'NIGHT: police on patrol! Shops closed.':'Morning! Shops are open.',2200)}}
+ if(gwait>0){gwait-=dt;look=true}else{look=false;gx+=gdir*(night?mode.policeSpeed:POLICE_DAY_SPEED)*dt;if(Math.abs(gx)>23)gdir*=-1;const m=Math.abs(gx)%10,on=night?(m<.2||m>9.8):Math.abs(gx)<.15;if(on&&state==='play'){gwait=night?2.2:3.2;gx+=gdir*.4}}
+ G.visible=night;if(!night){look=false;gwait=0;gx=-23;gdir=1}
+ G.position.set(gx,0,8);G.rotation.y=look?Math.PI:gdir>0?Math.PI/2:-Math.PI/2;swing(G,t,!look);
+ cone.visible=look;cone.position.set(gx,1.6,4.5);
+ if(state!=='play')return;
+ const p=P.position,W=keys.w||keys.arrowup,S=keys.s||keys.arrowdown,A=keys.a,D=keys.d;
+ yaw+=((keys.arrowleft?1:0)-(keys.arrowright?1:0))*2.2*dt;
+ en=Math.max(0,en-mode.idleDrain*dt);digging=false;
+ if(pos>0){ct-=dt;if(ct<=0&&(W||S)){if(W){pos--;if(pos===0){p.x=HX;p.z=0}}else if(pos<dug)pos++;ct=.3}if(pos>0){p.x=HX;p.z=HZ}}
+ else{
+  const dx=(D?1:0)-(A?1:0),dz=(S?1:0)-(W?1:0),pz=p.z;
+  if(dx||dz){const l=Math.hypot(dx,dz),c=Math.cos(yaw),s=Math.sin(yaw);p.x+=(c*dx+s*dz)/l*6*dt;p.z+=(-s*dx+c*dz)/l*6*dt}
+  if(p.z>=5.4)cur=Math.max(-2,Math.min(2,Math.round(p.x/10)));
+  if(Math.abs(p.x-cur*10)>=1.3&&((pz<5.2)!==(p.z<5.2)))p.z=pz;
+  p.x=p.z<5.2?Math.max(cur*10-4.5,Math.min(cur*10+4.5,p.x)):Math.max(-24,Math.min(24,p.x));
+  p.z=Math.max(-4.5,Math.min(10.5,p.z));
+  if(dug>0&&!covered&&Math.hypot(p.x-HX,p.z-HZ)<.75){pos=1;toast('Down the shaft…',900)}
+ }
+ // dig
+ const nh=Math.hypot(p.x-HX,p.z-HZ)<2.3;
+ if((keys.e||keys[' '])&&dug<N){if(pos<dug){if(pos>0||(nh&&!covered)){ad-=dt;if(ad<=0){pos++;ad=.12}}else toast(covered?'Take the rug off first (press C)':'Walk onto the glowing yellow tile first',700)}else if(pos===0&&!nh)toast('Walk onto the glowing yellow tile first',700);else if(pos===0&&covered)toast('Take the rug off first (press C)',700)}
+ if((keys.e||keys[' '])&&pos===dug&&dug<N&&(pos>0||(nh&&!covered))){
+  if(pack())toast('Pack full! Climb up and sell it.',900);
+  else if(en<=0)toast('Out of energy! Buy food from the Cook.',900);
+  else{digging=true;const L=ly(dug),T=L[3]*3/(TL[tool][1]*(.3+.7*dur/100)*(en>15?1:.8));
+   bp+=dt/T;dur=Math.max(0,dur-L[3]*.5/TL[tool][1]*mode.toolWear*dt);en=Math.max(0,en-mode.digDrain*dt);setBlk(bp);blk.position.x=HX+Math.sin(t*70)*.05;if(bp>=1)breakBlk();
+   if(pos===0){const hx=HX-p.x,hz=HZ-p.z;if(Math.hypot(hx,hz)>.3){let da=Math.atan2(-hx,-hz)-yaw;da=Math.atan2(Math.sin(da),Math.cos(da));yaw+=da*Math.min(1,6*dt)}}}
+ }
+ let up=0;if(night&&p.z>5.2&&pos===0)up=55;
+ else if(look){const mine=Math.abs(gx)<1;if(p.z>5.2&&pos===0)up=40;else if(night&&mine&&pos===0&&cur!==0)up=60;else if(mine&&!covered&&dug>0)up=30}
+ sus=up?Math.min(100,sus+up*mode.alertRate*dt):Math.max(0,sus-25*dt);if(sus>=100)caught();
+ const n=near();
+ $('obj').textContent=pack()?'Pack full! Climb up and sell it to Rico (left).':n?'Press F to talk to '+n.name:pos>0?'Hold E to dig (it also takes you back down) · W climbs up · S down · C rug':dug===0?'Hold E while standing on the glowing yellow tile to dig down':'Walk into the hole to climb down · C rug';
+ $('en').style.width=en+'%';$('du').style.width=dur+'%';$('dg').style.width=bp*100+'%';$('sus').style.width=sus+'%';
+ $('dl').textContent='⏱ '+clock(t)+' · '+(mode===MODES.hard?'💀 HARD · ':'')+(night?'🌙 NIGHT · ':'☀️ DAY · ')+'DEPTH '+dug*BLK+' m · '+(dug<N?ly(dug)[1]:'SEWER')+' · '+TL[tool][0];
+ $('iv').textContent='🧻 '+tp+'  PACK '+count()+'/'+mode.pack+'  dirt '+inv.dirt+' · clay '+inv.clay+' · stone '+inv.stone+' · concrete '+inv.concrete+' · gold '+inv.gold;
+ wrap.style.boxShadow=look&&state==='play'?'inset 0 0 90px rgba(255,60,60,.85)':'none';
+}
+function frame(dt){
+ tick(dt);
+ const p=P.position;pitchV+=((digging?-.95:pitch)-pitchV)*.15;camY+=((3.1-pos*BLK)-camY)*Math.min(1,8*dt);
+ cam.rotation.order='YXZ';cam.position.set(p.x,camY,p.z);cam.rotation.set(pitchV,yaw,0);
+ if(!digging)blk.position.x=HX;mark.material.color.setHex(Math.sin(t*5)>0?0xffd23f:0xff9d2f);spoonM.rotation.x=digging?Math.sin(t*30)*.5:0;spoonM.position.y=-.35+(digging?Math.sin(t*30)*.08:0);
+ dark+=((night?1:0)-dark)*Math.min(1,.8*dt);scene.background.copy(DC).lerp(NC,dark);scene.fog.color.copy(scene.background);hemi.intensity=.8-.55*dark;sun.intensity=.5-.4*dark;cone.material.opacity=.3+.2*dark;
+ R.render(scene,cam)}
+setBlk(0);let last=performance.now();
+(function loop(n){frame(Math.min(.05,(n-last)/1000));last=n;requestAnimationFrame(loop)})(last);
+</script></body></html>
