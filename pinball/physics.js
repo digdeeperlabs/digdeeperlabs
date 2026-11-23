@@ -86,9 +86,11 @@ function checkTubes() {
   for (const tube of tubes) {
     const t = tube.layout;
    const insideTube = ball.x > t.left && ball.x < t.right && ball.y < t.bottom && ball.y > t.top;
-    const atBack = insideTube && ball.y < t.top + BALL_RADIUS + 4;
+    // Far enough = the ball's middle is TUBE_SCORE_DEPTH pixels up from the mouth.
+    // (Up the table is a SMALLER y, so it's bottom MINUS the depth.)
+    const farEnough = insideTube && ball.y < t.bottom - TUBE_SCORE_DEPTH;
 
-    if (atBack && !tube.scoredThisTrip) {
+    if (farEnough && !tube.scoredThisTrip) {
       tube.scoredThisTrip = true;
       tube.lit = true;
       tubeTrips += 1;
