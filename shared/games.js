@@ -13,5 +13,6 @@ const GAMES = [
   { id: "pinball", name: "Pinball", blurb: "Win a game to get on the leaderboard.", scoreLabel: "Score" },
   { id: "chalk-archer", name: "Chalk Archer", blurb: "Win a game to get on the leaderboard.", scoreLabel: "Points" },
   { id: "cube-corner", name: "Cube Corner", blurb: "Win a game to get on the leaderboard.", scoreLabel: "Points" },
-  { id: "gold-rush-sim", name: "Gold Rush Sim", blurb: "Pan for gold. Don't starve.", scoreLabel: "XP" },
+  { id: "gold-rush-sim", name: "Gold Rush Sim", blurb: "Pan for gold. Don't starve. try to get on the leaderboard.", scoreLabel: "XP" },
+  { id: "dig-out-of-prison", name: "Dig Out of Prison", blurb: "Escape the prison the quickest possible to get on the leaderboard.", scoreLabel: "Time" },
 ];
