@@ -41,7 +41,7 @@ button:disabled{opacity:.4;cursor:default}
   <p id="op">Dig down through the floor of your cell, one block at a time, and break into the old sewer <span id="depthText"></span> m below.<br><br>
   Dirt and stone fill your pack. Visit the other cells and sell it for 🧻 toilet paper, then buy better tools, sharpening and food.<br><br>
   <b>WASD</b> move · <b>mouse</b> (click game) or <b>← →</b> look · hold <b>E</b> dig · <b>F</b> talk · <b>C</b> rug over the hole · <b>W/S</b> climb in the shaft<br>
-  <b>Normal</b>: daytime is safe, so dig, trade and shop freely.<br><span id="hardText"></span><br>At <b>night</b> the police patrol every cell and the shops close: stay out of the corridor, be in your cell or shaft when they check it, and keep the rug on the hole.</p>
+  <b>Normal</b>: daytime is safe, so dig, trade and shop freely.<br><span id="hardText"></span><br>At <b>night</b> the guard patrols and stops to scan your cell. Keep the rug on the hole (even when you're down it) and stay out of his flashlight. If he busts you, he takes half your pack.</p>
   <button id="go">PLAY</button><button id="goh" style="background:#ff6b5a">HARD MODE</button></div>
 </div>
 <div id="pad"><div class="g"><span></span><button data-k="w">▲</button><span></span><button data-k="a">◀</button><button data-k="s">▼</button><button data-k="d">▶</button></div>
@@ -83,6 +83,10 @@ const MODES = {
 const DEPTH_BLOCKS = 40;      // blocks to dig to reach the sewer (each block is 2 m)
 const DAY_LENGTH = 155;       // seconds in one day + night
 const POLICE_DAY_SPEED = 3;   // the guard's walking speed in daytime
+const FLASHLIGHT_ALERT = 60;  // how fast ALERT fills while his flashlight is on you (per second)
+const BEAM_LENGTH = 7;        // how far the flashlight shines into your cell (m)
+const BEAM_RADIUS = 3.2;      // how wide the beam is at its far end (m). Bigger = harder to dodge
+const BUST_TAKES = 0.5;       // how much of your pack the guard takes when he busts you (0.5 = half)
 
 // Tools: name, digging power, color, price in 🧻. One list, used by the shop AND the buying.
 const TL = [['Spoon', 1, 0xd9dde2, 0], ['Shovel', 2.2, 0x9a6b3a, 20], ['Pickaxe', 4, 0x7a7f88, 60], ['Jackhammer', 9, 0xf2b134, 150]];
@@ -102,7 +106,7 @@ const hemi=new THREE.HemisphereLight(0xffffff,0x667788,.8);scene.add(hemi);const
 const sun=new THREE.DirectionalLight(0xffffff,.5);sun.position.set(10,25,12);scene.add(sun);
 const M=c=>new THREE.MeshLambertMaterial({color:c});
 function box(w,h,d,c,x,y,z,p){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c));m.position.set(x,y,z);(p||scene).add(m);return m}
-const BLK=2,N=DEPTH_BLOCKS,HX=.5,HZ=-1.5,WC=0x6b7280;
+const BLK=2,N=DEPTH_BLOCKS,HX=.5,HZ=-1.5,WC=0x6b7280,GUARD_Z=8;  // GUARD_Z: the corridor line the guard walks on
 let mode=MODES.normal;
 
 // The start screen's text, built from the numbers above (so it can't go out of date).
@@ -139,7 +143,7 @@ const NP=[{x:-20,name:'Rico (buyer)',role:'buy',c:0x8a5a2b},{x:-10,name:'Smith (
 NP.forEach(n=>{const g=char(n.c,0x333333,n.h);g.position.set(n.x,0,-2.5);label(n.name,g)});
 function swing(c,t,m){const s=m?Math.sin(t*12)*.8:0;c.la.rotation.x=s;c.ra.rotation.x=-s;c.ll.rotation.x=-s;c.rl.rotation.x=s}
 const G=char(0x2b4a8a,0x1c2f5a,0x1c2f5a);
-const cone=new THREE.Mesh(new THREE.ConeGeometry(3.2,7,20,1,true),new THREE.MeshBasicMaterial({color:0xfff2a0,transparent:true,opacity:.3,side:2}));cone.rotation.x=Math.PI/2;scene.add(cone);
+const cone=new THREE.Mesh(new THREE.ConeGeometry(BEAM_RADIUS,BEAM_LENGTH,20,1,true),new THREE.MeshBasicMaterial({color:0xfff2a0,transparent:true,opacity:.3,side:2}));cone.rotation.x=Math.PI/2;scene.add(cone);
 // player (invisible body, first person)
 const P=new THREE.Object3D();P.position.set(0,0,0);scene.add(cam);
 cam.add(new THREE.PointLight(0xffe2a8,.9,14));
@@ -153,7 +157,10 @@ function toast(s,ms){const e=$('toast');e.textContent=s;e.style.opacity=1;clearT
 function setTool(i){tool=i;dur=100;spoonM.scale.setScalar(1+i*.25);spoonM.children.forEach(m=>m.material.color.setHex(TL[i][2]))}
 function start(m){mode=m;$('ov').style.display='none';reset()}
 function reset(){while(rings.children.length)rings.remove(rings.children[0]);tp=mode.startPaper;for(const k in inv)inv[k]=0;en=100;dug=0;pos=0;bp=0;covered=false;rug.visible=false;sus=0;t=0;clk=0;night=false;wasN=false;dark=0;yaw=0;pitch=0;cur=0;camY=3.1;P.position.set(0,0,0);setTool(0);setBlk(0);state='play'}
-function caught(){sus=0;for(const k in inv)inv[k]=0;pos=0;P.position.set(0,0,0);covered=true;rug.visible=true;toast('BUSTED! The guard took your stuff.',2200)}
+// Busted: the guard takes BUST_TAKES of each kind of block (rounded down) and puts you back in your cell.
+function caught(){sus=0;let took=0;for(const k in inv){const n=Math.floor(inv[k]*BUST_TAKES);inv[k]-=n;took+=n}pos=0;P.position.set(0,0,0);covered=true;rug.visible=true;toast('BUSTED! The guard took '+took+' blocks.',2200)}
+// Is this spot in the flashlight beam? It starts at the guard and gets wider as it shines into the cell.
+function inBeam(p){const d=GUARD_Z-p.z;return d>0&&d<BEAM_LENGTH&&Math.abs(p.x-gx)<BEAM_RADIUS*d/BEAM_LENGTH}
 function win(){state='won';$('oh').textContent='YOU ESCAPED!';$('op').textContent='You broke into the sewer and crawled out in '+clock(t)+' ('+mode.name+' mode), with 🧻 '+tp+' left over.';$('go').textContent='PLAY AGAIN';$('ov').style.display='flex'}
 function breakBlk(){const L=ly(dug);const it=(Math.random()<.1&&dug>=14)?'gold':L[4];inv[it]++;toast('+1 '+it+(it==='gold'?'!':''),700);ring(dug);dug++;pos=dug;bp=0;setBlk(0);if(dug>=N)win()}
 // shop
@@ -163,7 +170,7 @@ function renderShop(){const n=shopN;let h='<h2 style="margin:0;color:#ffd23f">'+
  if(n.role==='buy'){const v=sellValue();h+='<div>'+Object.entries(PR).map(([k,p])=>k+' '+p).join(' · ')+'</div>';btn('sell','Sell everything (+'+v+' 🧻)',!v)}
  if(n.role==='smith'){btn('sharp','Sharpen your '+TL[tool][0]+' ('+SHOP.sharpen+' 🧻)',dur>=99||tp<SHOP.sharpen);[1,2,3].forEach(i=>btn('t'+i,TL[i][0]+' ('+TL[i][3]+' 🧻)',tool>=i||tp<TL[i][3]))}
  if(n.role==='cook'){btn('f1','Bread: +'+SHOP.breadEnergy+' energy ('+SHOP.bread+' 🧻)',tp<SHOP.bread||en>=99);btn('f2','Prison stew: full energy ('+SHOP.stew+' 🧻)',tp<SHOP.stew||en>=99)}
- if(n.role==='tip')h+='<div style="max-width:400px">“Rock chews up a spoon. Get a pickaxe. Keep the rug on that hole unless you’re in it, and stay out of the corridor when he stops at your cell.”</div>';
+ if(n.role==='tip')h+='<div style="max-width:400px">“Rock chews up a spoon. Get a pickaxe. At night, keep the rug on that hole, even when you’re down it. And stay out of his flashlight when he stops at your cell.”</div>';
  btn('x','Close',false);$('shop').innerHTML=h}
 function B(id){
  if(id==='x'){closeShop();return}
@@ -181,7 +188,7 @@ R.domElement.onclick=()=>{if(state==='play'&&R.domElement.requestPointerLock)R.d
 addEventListener('mousemove',e=>{if(document.pointerLockElement===R.domElement){yaw-=e.movementX*.0025;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.0025))}});
 let lt=null;wrap.addEventListener('touchstart',e=>{lt=e.touches[0]},{passive:true});wrap.addEventListener('touchmove',e=>{if(!lt)return;const q=e.touches[0];yaw-=(q.clientX-lt.clientX)*.006;pitch=Math.max(-1.2,Math.min(1.2,pitch-(q.clientY-lt.clientY)*.006));lt=q},{passive:true});
 function press(k){
- if(k==='f'){if(state==='shop')closeShop();else if(state==='play'){const n=near();if(n){if(night)toast('Zzz… they’re asleep. Shops open at dawn.',1500);else openShop(n)}}}
+ if(k==='f'){if(state==='shop')closeShop();else if(state==='play'){const n=near();if(n)openShop(n)}}
  if(k==='escape'&&state==='shop')closeShop();
  if(k==='c'&&state==='play'&&(pos>0||Math.hypot(P.position.x-HX,P.position.z-HZ)<3)){covered=!covered;rug.visible=covered;toast(covered?'Rug over the hole':'Hole uncovered',800)}
  if(k==='enter'&&state==='won'){$('ov').style.display='none';reset()}}
@@ -190,11 +197,11 @@ addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();if(!keys[k])press(k);keys[k]=true};['pointerup','pointerleave','pointercancel'].forEach(v=>b['on'+v]=()=>keys[k]=false)});
 function tick(dt){
  t+=dt;
- if(state==='play'){clk+=dt;night=(clk%DAY_LENGTH)>=mode.nightStarts;if(night!==wasN){wasN=night;toast(night?'NIGHT: police on patrol! Shops closed.':'Morning! Shops are open.',2200)}}
- if(gwait>0){gwait-=dt;look=true}else{look=false;gx+=gdir*(night?mode.policeSpeed:POLICE_DAY_SPEED)*dt;if(Math.abs(gx)>23)gdir*=-1;const m=Math.abs(gx)%10,on=night?(m<.2||m>9.8):Math.abs(gx)<.15;if(on&&state==='play'){gwait=night?2.2:3.2;gx+=gdir*.4}}
+ if(state==='play'){clk+=dt;night=(clk%DAY_LENGTH)>=mode.nightStarts;if(night!==wasN){wasN=night;toast(night?'NIGHT: police on patrol! Rug on, stay out of his flashlight.':'Morning! The guard is off duty.',2200)}}
+ if(gwait>0){gwait-=dt;look=true}else{look=false;gx+=gdir*(night?mode.policeSpeed:POLICE_DAY_SPEED)*dt;if(Math.abs(gx)>23)gdir*=-1;const on=Math.abs(gx)<.15;if(on&&state==='play'){gwait=night?2.2:3.2;gx+=gdir*.4}}
  G.visible=night;if(!night){look=false;gwait=0;gx=-23;gdir=1}
- G.position.set(gx,0,8);G.rotation.y=look?Math.PI:gdir>0?Math.PI/2:-Math.PI/2;swing(G,t,!look);
- cone.visible=look;cone.position.set(gx,1.6,4.5);
+ G.position.set(gx,0,GUARD_Z);G.rotation.y=look?Math.PI:gdir>0?Math.PI/2:-Math.PI/2;swing(G,t,!look);
+ cone.visible=look;cone.position.set(gx,1.6,GUARD_Z-BEAM_LENGTH/2);
  if(state!=='play')return;
  const p=P.position,W=keys.w||keys.arrowup,S=keys.s||keys.arrowdown,A=keys.a,D=keys.d;
  yaw+=((keys.arrowleft?1:0)-(keys.arrowright?1:0))*2.2*dt;
@@ -219,8 +226,10 @@ function tick(dt){
    bp+=dt/T;dur=Math.max(0,dur-L[3]*.5/TL[tool][1]*mode.toolWear*dt);en=Math.max(0,en-mode.digDrain*dt);setBlk(bp);blk.position.x=HX+Math.sin(t*70)*.05;if(bp>=1)breakBlk();
    if(pos===0){const hx=HX-p.x,hz=HZ-p.z;if(Math.hypot(hx,hz)>.3){let da=Math.atan2(-hx,-hz)-yaw;da=Math.atan2(Math.sin(da),Math.cos(da));yaw+=da*Math.min(1,6*dt)}}}
  }
- let up=0;if(night&&p.z>5.2&&pos===0)up=55;
- else if(look){const mine=Math.abs(gx)<1;if(p.z>5.2&&pos===0)up=40;else if(night&&mine&&pos===0&&cur!==0)up=60;else if(mine&&!covered&&dug>0)up=30}
+ // ALERT: only two things get you in trouble. (look is only ever true at night, while he scans your cell.)
+ let up=0;
+ if(look&&dug>0&&!covered)caught();                            // rug off while he scans = instant bust
+ else if(look&&pos===0&&p.z>5.2&&inBeam(p))up=FLASHLIGHT_ALERT; // out in the corridor, in his beam
  sus=up?Math.min(100,sus+up*mode.alertRate*dt):Math.max(0,sus-25*dt);if(sus>=100)caught();
  const n=near();
  $('obj').textContent=pack()?'Pack full! Climb up and sell it to Rico (left).':n?'Press F to talk to '+n.name:pos>0?'Hold E to dig (it also takes you back down) · W climbs up · S down · C rug':dug===0?'Hold E while standing on the glowing yellow tile to dig down':'Walk into the hole to climb down · C rug';
